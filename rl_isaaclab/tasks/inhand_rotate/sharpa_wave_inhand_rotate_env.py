@@ -53,8 +53,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.hand_dof_lower_limits = joint_pos_limits[..., 0]
         self.hand_dof_upper_limits = joint_pos_limits[..., 1]
 
-        # track goal resets
-        self.reset_goal_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         # used to compare object position
         self.in_hand_pos = self.object.data.default_root_state[:, 0:3].clone()
         self.in_hand_pos[:, 2] -= 0.04

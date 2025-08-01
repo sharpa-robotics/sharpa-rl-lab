@@ -6,8 +6,11 @@
 import math
 
 import isaaclab.sim as sim_utils
+import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import SceneEntityCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
@@ -15,17 +18,49 @@ from isaaclab.utils import configclass
 
 
 @configclass
+class EventCfg:
+    """Configuration for randomization."""
+
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "static_friction_range": (0.8, 0.8),
+            "dynamic_friction_range": (0.6, 0.6),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+        },
+    )
+
+    add_base_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+            "mass_distribution_params": (-5.0, 5.0),
+            "operation": "add",
+        },
+    )
+
+
+@configclass
 class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # env
-    decimation = 12
     episode_length_s = 20.0
     action_space = 22
     observation_space = 147  # (full)
     state_space = 0
     asymmetric_obs = False
     obs_type = "full"
+    # control
+    decimation = 12
     clip_obs = 5.0
     clip_actions = 1.0
+    action_scale = 1 / 24
+    torque_control = True
+    pgain = 60
+    dgain = 4
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
@@ -127,20 +162,34 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.25, replicate_physics=True)
     # reset
+    reset_height_lower = 0.615
+    reset_height_upper = 0.655
     reset_position_noise = 0.01  # range of position at reset
     reset_dof_pos_noise = 0.2  # range of dof pos at reset
     reset_dof_vel_noise = 0.0  # range of dof vel at reset
-    # reward scales
-    dist_reward_scale = -10.0
-    rot_reward_scale = 1.0
-    rot_eps = 0.1
-    action_penalty_scale = -0.0002
-    reach_goal_bonus = 250
-    fall_penalty = 0
-    fall_dist = 0.24
-    vel_obs_scale = 0.2
-    success_tolerance = 0.2
-    max_consecutive_success = 0
-    av_factor = 0.1
-    act_moving_average = 1.0
-    force_torque_obs_scale = 10.0
+    # reward
+    rot_axis = (0, 0, 1)
+    angvel_clip_min = -0.5
+    angvel_clip_max = 0.5
+    rotate_reward_scale = 1.5
+    object_linvel_penalty_scale = -0.3
+    pos_diff_penalty_scale = -0.3
+    torque_penalty_scale = -0.1
+    work_penalty_scale = -0.5
+    # grasp cache
+    grasp_cache_path = 'cache/sharpa_wave_grasp_cache_50k.npy'
+    # domain randomization
+    randomize_pd_gains = True
+    randomize_p_gain_lower = 40
+    randomize_p_gain_upper = 100
+    randomize_d_gain_lower = 3
+    randomize_d_gain_upper = 5
+    randomize_mass = True
+    randomize_mass_lower = 0.01
+    randomize_mass_upper = 0.25
+    randomize_com = True
+    randomize_com_lower = -0.01
+    randomize_com_upper = 0.01
+    randomize_friction = True
+    randomize_friction_lower = 0.3
+    randomize_friction_upper = 3.0

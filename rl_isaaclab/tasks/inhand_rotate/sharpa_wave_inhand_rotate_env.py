@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
-from isaaclab.markers import VisualizationMarkers
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
 
@@ -35,6 +34,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.prev_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
         self.cur_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
 
+        # buffers for object
+        self.object_pos = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
+        self.object_rot = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
+        self.object_pos_prev = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
+        self.object_rot_prev = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
+
         # list of actuated joints
         self.actuated_dof_indices = list()
         for joint_name in cfg.actuated_joint_names:
@@ -53,25 +58,18 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.hand_dof_lower_limits = joint_pos_limits[..., 0]
         self.hand_dof_upper_limits = joint_pos_limits[..., 1]
 
-        # used to compare object position
-        self.in_hand_pos = self.object.data.default_root_state[:, 0:3].clone()
-        self.in_hand_pos[:, 2] -= 0.04
-        # default goal positions
-        self.goal_rot = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
-        self.goal_rot[:, 0] = 1.0
-        self.goal_pos = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
-        self.goal_pos[:, :] = torch.tensor([-0.2, -0.45, 0.68], device=self.device)
-        # initialize goal marker
-        self.goal_markers = VisualizationMarkers(self.cfg.goal_object_cfg)
+        # pd control
+        self.p_gain = self.cfg.pgain
+        self.d_gain = self.cfg.dgain
+        assert type(self.p_gain) in [int, float] and type(self.d_gain) in [int, float], 'assume p_gain and d_gain are only scalars'
+        self.p_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.p_gain
+        self.d_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.d_gain
 
-        # track successes
-        self.successes = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
-        self.consecutive_successes = torch.zeros(1, dtype=torch.float, device=self.device)
+        # grasp_cache
+        self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
 
-        # unit tensors
-        self.x_unit_tensor = torch.tensor([1, 0, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
-        self.y_unit_tensor = torch.tensor([0, 1, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
-        self.z_unit_tensor = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
+        # reward config
+        self._setup_reward_config(self)
 
     def _setup_scene(self):
         # add hand, in-hand object, and goal object
@@ -88,30 +86,35 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
 
+        if self.cfg.randomize_mass:
+        if self.cfg.randomize_com:
+            object_com_pose_w = self.object.data.root_com_pos_w + sample_uniform(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper, (self.num_envs, 3), device=self.device)
+            self.object.write_root_com_pose_to_sim(object_com_pose_w)
+
+        if self.cfg.randomize_friction:
+
+
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
+        actions = saturate(actions, -self.cfg.clip_actions, self.cfg.clip_actions)
         self.actions = actions.clone()
+        targets = self.prev_targets + self.cfg.action_scale * self.actions
+        self.cur_targets[: self.actuated_dof_indices] = saturate(
+            targets,
+            self.hand_dof_lower_limits[self.actuated_dof_indices],
+            self.hand_dof_upper_limits[self.actuated_dof_indices],
+        )
+        self.object_pos_prev[:] = self.object_pos
+        self.object_rot_prev[:] = self.object_rot
 
     def _apply_action(self) -> None:
-        self.cur_targets[:, self.actuated_dof_indices] = scale(
-            self.actions,
-            self.hand_dof_lower_limits[:, self.actuated_dof_indices],
-            self.hand_dof_upper_limits[:, self.actuated_dof_indices],
-        )
-        self.cur_targets[:, self.actuated_dof_indices] = (
-            self.cfg.act_moving_average * self.cur_targets[:, self.actuated_dof_indices]
-            + (1.0 - self.cfg.act_moving_average) * self.prev_targets[:, self.actuated_dof_indices]
-        )
-        self.cur_targets[:, self.actuated_dof_indices] = saturate(
-            self.cur_targets[:, self.actuated_dof_indices],
-            self.hand_dof_lower_limits[:, self.actuated_dof_indices],
-            self.hand_dof_upper_limits[:, self.actuated_dof_indices],
-        )
-
+        self._compute_intermediate_values()
+        if self.cfg.torque_control:
+            torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
+            self.torques = saturate(torques, -0.5, 0.5).clone()
+            self.hand.set_joint_effort_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
+        else:
+            self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         self.prev_targets[:, self.actuated_dof_indices] = self.cur_targets[:, self.actuated_dof_indices]
-
-        self.hand.set_joint_position_target(
-            self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices
-        )
 
     def _get_observations(self) -> dict:
         if self.cfg.asymmetric_obs:
@@ -135,65 +138,39 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-        (
-            total_reward,
-            self.reset_goal_buf,
-            self.successes[:],
-            self.consecutive_successes[:],
-        ) = compute_rewards(
-            self.reset_buf,
-            self.reset_goal_buf,
-            self.successes,
-            self.consecutive_successes,
-            self.max_episode_length,
-            self.object_pos,
-            self.object_rot,
-            self.in_hand_pos,
-            self.goal_rot,
-            self.cfg.dist_reward_scale,
-            self.cfg.rot_reward_scale,
-            self.cfg.rot_eps,
-            self.actions,
-            self.cfg.action_penalty_scale,
-            self.cfg.success_tolerance,
-            self.cfg.reach_goal_bonus,
-            self.cfg.fall_dist,
-            self.cfg.fall_penalty,
-            self.cfg.av_factor,
+        rotate_reward = saturate(self.object_angvel * self.rot_axis, self.cfg.angvel_clip_min, self.cfg.angvel_clip_max)
+        object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
+        pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
+        torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
+        work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
+
+        total_reward = compute_rewards(
+            rotate_reward, self.cfg.rotate_reward_scale,
+            object_linvel_penalty, self.cfg.object_linvel_penalty_scale,
+            pos_diff_penalty, self.cfg.pos_diff_penalty_scale,
+            torque_penalty, self.cfg.torque_penalty_scale,
+            work_penalty, self.cfg.work_penalty_scale,
         )
 
         if "log" not in self.extras:
             self.extras["log"] = dict()
-        self.extras["log"]["consecutive_successes"] = self.consecutive_successes.mean()
-
-        # reset goals if the goal has been reached
-        goal_env_ids = self.reset_goal_buf.nonzero(as_tuple=False).squeeze(-1)
-        if len(goal_env_ids) > 0:
-            self._reset_target_pose(goal_env_ids)
-
+        self.extras["log"]["rotate_reward"] = rotate_reward.mean()
+        self.extras["log"]["object_linvel_penalty"] = object_linvel_penalty.mean()
+        self.extras["log"]["pos_diff_penalty"] = pos_diff_penalty.mean()
+        self.extras["log"]["torque_penalty"] = torque_penalty.mean()
+        self.extras["log"]["work_penalty"] = work_penalty.mean()
+        self.extras["log"]['roll'] = self.object_angvel[:, 0].mean()
+        self.extras["log"]['pitch'] = self.object_angvel[:, 1].mean()
+        self.extras["log"]['yaw'] = self.object_angvel[:, 2].mean()
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         self._compute_intermediate_values()
-
-        # reset when cube has fallen
-        goal_dist = torch.norm(self.object_pos - self.in_hand_pos, p=2, dim=-1)
-        out_of_reach = goal_dist >= self.cfg.fall_dist
-
-        if self.cfg.max_consecutive_success > 0:
-            # Reset progress (episode length buf) on goal envs if max_consecutive_success > 0
-            rot_dist = rotation_distance(self.object_rot, self.goal_rot)
-            self.episode_length_buf = torch.where(
-                torch.abs(rot_dist) <= self.cfg.success_tolerance,
-                torch.zeros_like(self.episode_length_buf),
-                self.episode_length_buf,
-            )
-            max_success_reached = self.successes >= self.cfg.max_consecutive_success
-
+        height_reset_upper = self.object_pos > self.cfg.reset_height_upper
+        height_reset_lower = self.object_pos < self.cfg.reset_height_lower
+        height_reset = height_reset_upper | height_reset_lower
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        if self.cfg.max_consecutive_success > 0:
-            time_out = time_out | max_success_reached
-        return out_of_reach, time_out
+        return height_reset, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | None):
         if env_ids is None:
@@ -201,36 +178,27 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # resets articulation and rigid body attributes
         super()._reset_idx(env_ids)
 
-        # reset goals
-        self._reset_target_pose(env_ids)
+        # pd randomize
+        if self.cfg.randomize_pd_gains:
+            self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
+            self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
+
+        # pose cache
+        sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
+        sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
-        pos_noise = sample_uniform(-1.0, 1.0, (len(env_ids), 3), device=self.device)
         # global object positions
-        object_default_state[:, 0:3] = (
-            object_default_state[:, 0:3] + self.cfg.reset_position_noise * pos_noise + self.scene.env_origins[env_ids]
-        )
-
-        rot_noise = sample_uniform(-1.0, 1.0, (len(env_ids), 2), device=self.device)  # noise for X and Y rotation
-        object_default_state[:, 3:7] = randomize_rotation(
-            rot_noise[:, 0], rot_noise[:, 1], self.x_unit_tensor[env_ids], self.y_unit_tensor[env_ids]
-        )
-
+        object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
+        object_default_state[:, 3:7] = sampled_pose[:, 25:]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
 
         # reset hand
-        delta_max = self.hand_dof_upper_limits[env_ids] - self.hand.data.default_joint_pos[env_ids]
-        delta_min = self.hand_dof_lower_limits[env_ids] - self.hand.data.default_joint_pos[env_ids]
-
-        dof_pos_noise = sample_uniform(-1.0, 1.0, (len(env_ids), self.num_hand_dofs), device=self.device)
-        rand_delta = delta_min + (delta_max - delta_min) * 0.5 * dof_pos_noise
-        dof_pos = self.hand.data.default_joint_pos[env_ids] + self.cfg.reset_dof_pos_noise * rand_delta
-
-        dof_vel_noise = sample_uniform(-1.0, 1.0, (len(env_ids), self.num_hand_dofs), device=self.device)
-        dof_vel = self.hand.data.default_joint_vel[env_ids] + self.cfg.reset_dof_vel_noise * dof_vel_noise
+        dof_pos = sampled_pose[:, :22]
+        dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
 
         self.prev_targets[env_ids] = dof_pos
         self.cur_targets[env_ids] = dof_pos
@@ -239,22 +207,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.hand.set_joint_position_target(dof_pos, env_ids=env_ids)
         self.hand.write_joint_state_to_sim(dof_pos, dof_vel, env_ids=env_ids)
 
-        self.successes[env_ids] = 0
         self._compute_intermediate_values()
 
-    def _reset_target_pose(self, env_ids):
-        # reset goal rotation
-        rand_floats = sample_uniform(-1.0, 1.0, (len(env_ids), 2), device=self.device)
-        new_rot = randomize_rotation(
-            rand_floats[:, 0], rand_floats[:, 1], self.x_unit_tensor[env_ids], self.y_unit_tensor[env_ids]
-        )
-
-        # update goal pose and markers
-        self.goal_rot[env_ids] = new_rot
-        goal_pos = self.goal_pos + self.scene.env_origins
-        self.goal_markers.visualize(goal_pos, self.goal_rot)
-
-        self.reset_goal_buf[env_ids] = 0
+        self.object_pos_prev[env_ids] = self.object_pos
+        self.object_rot_prev[env_ids] = self.object_rot
 
     def _compute_intermediate_values(self):
         # data for hand
@@ -267,6 +223,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         self.hand_dof_pos = self.hand.data.joint_pos
         self.hand_dof_vel = self.hand.data.joint_vel
+        self.hand_dof_torque = self.hand.data.computed_torque
 
         # data for object
         self.object_pos = self.object.data.root_pos_w - self.scene.env_origins
@@ -345,6 +302,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             dim=-1,
         )
         return states
+    
+    def _setup_reward_config(self):
+        self.rot_axis = self.cfg.rot_axis.repeat(self.num_envs, 1).to(self.device)
 
 
 @torch.jit.script
@@ -373,58 +333,15 @@ def rotation_distance(object_rot, target_rot):
 
 @torch.jit.script
 def compute_rewards(
-    reset_buf: torch.Tensor,
-    reset_goal_buf: torch.Tensor,
-    successes: torch.Tensor,
-    consecutive_successes: torch.Tensor,
-    max_episode_length: float,
-    object_pos: torch.Tensor,
-    object_rot: torch.Tensor,
-    target_pos: torch.Tensor,
-    target_rot: torch.Tensor,
-    dist_reward_scale: float,
-    rot_reward_scale: float,
-    rot_eps: float,
-    actions: torch.Tensor,
-    action_penalty_scale: float,
-    success_tolerance: float,
-    reach_goal_bonus: float,
-    fall_dist: float,
-    fall_penalty: float,
-    av_factor: float,
+    rotate_reward: torch.Tensor, rotate_reward_scale: float,
+    object_linvel_penalty: torch.Tensor, object_linvel_penalty_scale: float,
+    pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
+    torque_penalty: torch.Tensor, torque_penalty_scale: float,
+    work_penalty: float, work_penalty_scale: float,
 ):
-
-    goal_dist = torch.norm(object_pos - target_pos, p=2, dim=-1)
-    rot_dist = rotation_distance(object_rot, target_rot)
-
-    dist_rew = goal_dist * dist_reward_scale
-    rot_rew = 1.0 / (torch.abs(rot_dist) + rot_eps) * rot_reward_scale
-
-    action_penalty = torch.sum(actions**2, dim=-1)
-
-    # Total reward is: position distance + orientation alignment + action regularization + success bonus + fall penalty
-    reward = dist_rew + rot_rew + action_penalty * action_penalty_scale
-
-    # Find out which envs hit the goal and update successes count
-    goal_resets = torch.where(torch.abs(rot_dist) <= success_tolerance, torch.ones_like(reset_goal_buf), reset_goal_buf)
-    successes = successes + goal_resets
-
-    # Success bonus: orientation is within `success_tolerance` of goal orientation
-    reward = torch.where(goal_resets == 1, reward + reach_goal_bonus, reward)
-
-    # Fall penalty: distance to the goal is larger than a threshold
-    reward = torch.where(goal_dist >= fall_dist, reward + fall_penalty, reward)
-
-    # Check env termination conditions, including maximum success number
-    resets = torch.where(goal_dist >= fall_dist, torch.ones_like(reset_buf), reset_buf)
-
-    num_resets = torch.sum(resets)
-    finished_cons_successes = torch.sum(successes * resets.float())
-
-    cons_successes = torch.where(
-        num_resets > 0,
-        av_factor * finished_cons_successes / num_resets + (1.0 - av_factor) * consecutive_successes,
-        consecutive_successes,
-    )
-
-    return reward, goal_resets, successes, cons_successes
+    reward = rotate_reward * rotate_reward_scale
+    reward += object_linvel_penalty * object_linvel_penalty_scale
+    reward += pos_diff_penalty * pos_diff_penalty_scale
+    reward += torque_penalty * torque_penalty_scale
+    reward += work_penalty * work_penalty_scale
+    return reward

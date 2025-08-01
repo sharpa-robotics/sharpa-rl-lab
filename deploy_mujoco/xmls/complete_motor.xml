@@ -1,0 +1,284 @@
+<mujoco model="sharpa_wave_HA3_right">
+  <compiler angle="radian" meshdir="meshes" autolimits="true"/>
+
+  <option iterations="1" ls_iterations="4" timestep="0.01">
+    <flag eulerdamp="disable"/>
+  </option>
+
+  <custom>
+    <numeric data="30" name="max_contact_points"/>
+    <numeric data="15" name="max_geom_pairs"/>
+  </custom>
+
+  <default>
+    <default class="right_hand">
+      <joint axis="1 0 0" damping="0.2" armature="0.3" actuatorfrcrange="-0.25 0.25" frictionloss="0.02"/>
+
+      <default class="thumb">
+        <default class="thumb_CMC_FE">
+          <joint range="0 1.9199" axis="0 0 1"/>
+        </default>
+        <default class="thumb_CMC_AA">
+          <joint range="-0.34907 0.34907" axis="0 0 1"/>
+        </default>
+        <default class="thumb_MCP_FE">
+          <joint range="-0.43633 1.30900" axis="0 0 1"/>
+        </default>
+        <default class="thumb_MCP_AA">
+          <joint range="-0.17453 0.17453" axis="0 0 1"/>
+        </default>
+        <default class="thumb_IP">
+          <joint range="-0.17453 1.5708" axis="0 0 1"/>
+        </default>
+      </default>
+
+      <default class="CMC">
+        <joint range="0 0.2618" axis="0 0 1"/>
+      </default>
+      <default class="MCP_FE">
+        <joint range="-0.17453 1.5708" axis="0 0 1"/>
+      </default>
+      <default class="MCP_AA">
+        <joint range="-0.34907 0.34907" axis="0 0 1"/>
+      </default>
+      <default class="PIP">
+        <joint range="0 1.5708" axis="0 0 1"/>
+      </default>
+      <default class="DIP">
+        <joint range="0 1.5708" axis="0 0 1"/>
+      </default>
+
+      <default class="plastic">
+        <geom solimp="0.01 0.99 0.0001" solref="0.001 2"/>
+        <default class="plastic_visual">
+          <geom type="mesh" material="black" contype="0" conaffinity="0" group="2"/>
+        </default>
+        <default class="plastic_collision">
+          <geom type="mesh" group="3" contype="1" conaffinity="1" friction="1 0.005 0.0001"/>
+        </default>
+      </default>
+      
+    </default>
+  </default>
+
+  <asset>
+    <material name="black" specular="0.5" shininess="0.25" rgba="0.16355 0.16355 0.16355 1"/>
+    <material name="gray" specular="0.0" shininess="0.25" rgba="0.80848 0.80848 0.80848 1"/>
+    <material name="metallic" specular="0" shininess="0.25" rgba="0.9 0.9 0.9 1"/>
+
+    <mesh class="right_hand" file="hand_palm_r.STL" />
+    <mesh class="right_hand" file="thumb_CMC_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="thumb_MC.STL" />
+    <mesh class="right_hand" file="thumb_MCP_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="thumb_PP.STL" />
+    <mesh class="right_hand" file="thumb_DP.STL" />
+    <mesh class="right_hand" file="index_MCP_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="index_PP.STL" />
+    <mesh class="right_hand" file="index_MP.STL" />
+    <mesh class="right_hand" file="index_DP.STL" />
+    <mesh class="right_hand" file="middle_MCP_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="middle_PP.STL" />
+    <mesh class="right_hand" file="middle_MP.STL" />
+    <mesh class="right_hand" file="middle_DP.STL" />
+    <mesh class="right_hand" file="ring_MCP_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="ring_PP.STL" />
+    <mesh class="right_hand" file="ring_MP.STL" />
+    <mesh class="right_hand" file="ring_DP.STL" />
+    <mesh class="right_hand" file="pinky_MC.STL" />
+    <mesh class="right_hand" file="pinky_MCP_VL.STL" inertia="shell" />
+    <mesh class="right_hand" file="pinky_PP.STL" />
+    <mesh class="right_hand" file="pinky_MP.STL" />
+    <mesh class="right_hand" file="pinky_DP.STL" />
+  </asset>
+
+  <worldbody>
+    <body name="hand_palm_r" pos="0.0 0.0 0.5" quat="0.9063078 -0.4226183 0 0" childclass="right_hand">
+      <inertial pos="0.0023039 -0.00074714 0.00062856" quat="1.0 0.0 0.0 0.0" mass="0.13754" diaginertia="3.7086E-05 4.6898E-05 5.6585E-05" />
+      <site name="hand_palm_r_site" pos="0 0 0" quat="1 0 0 0" group="4" />
+      <geom class="plastic_visual" mesh="hand_palm_r" />
+      <geom class="plastic_collision" mesh="hand_palm_r" />
+      <body name="thumb_CMC_VL" pos="0.0221 -0.0092892 0.012761" quat="-3.5861363951756952e-06 -0.9762962574249542 -7.950229471201343e-07 0.21643848485085773">
+        <inertial pos="-1.1796E-16 5.5511E-17 -1.7347E-17" quat="1.0 0.0 0.0 0.0" mass="0.0023603" diaginertia="5.5462e-08 5.5462e-08 6.9556e-09" />
+        <joint class="thumb_CMC_FE" name="thumb_CMC_FE" />
+        <geom class="plastic_visual" mesh="thumb_CMC_VL" />
+        <body name="thumb_MC" pos="0 -0.004 0" quat="0.6123708781189469 -0.6123731274869127 0.35355349104382805 0.3535547897207008">
+          <inertial pos="0.037908 -0.0065996 0.0067342" quat="1.0 0.0 0.0 0.0" mass="0.061031" diaginertia="7.325e-06 1.5159e-05 1.3961e-05" />
+          <joint class="thumb_CMC_AA" name="thumb_CMC_AA" />
+          <geom class="plastic_visual" mesh="thumb_MC" />
+          <geom class="plastic_collision" mesh="thumb_MC" />
+          <body name="thumb_MCP_VL" pos="0.065 -0.0059368 0.0049816" quat="0.9063087645496659 0.4226161654509423 0.0 0.0">
+            <inertial pos="2.77555756156289E-17 -1.21430643318376E-17 5.20417042793042E-18" quat="1.0 0.0 0.0 0.0" mass="0.000284908238591216" diaginertia="5.54934088336806e-09 5.54934088336806e-09 8.63139713758578e-10" />
+            <joint class="thumb_MCP_FE" name="thumb_MCP_FE" />
+            <geom class="plastic_visual" mesh="thumb_MCP_VL" />
+            <body name="thumb_PP" pos="0 0 0" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+              <inertial pos="0.020418 -7.4477E-05 -0.0012028" quat="1.0 0.0 0.0 0.0" mass="0.014127" diaginertia="7.3256e-07 1.7639e-06 1.4349e-06" />
+              <joint class="thumb_MCP_AA" name="thumb_MCP_AA" />
+              <geom class="plastic_visual" mesh="thumb_PP" />
+              <geom class="plastic_collision" mesh="thumb_PP" />
+              <body name="thumb_DP" pos="0.0395 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+                <inertial pos="0.015287 -0.0028888 -0.00018884" quat="1.0 0.0 0.0 0.0" mass="0.0098282" diaginertia="2.8946e-07 4.5497e-07 3.8242e-07" />
+                <joint class="thumb_IP" name="thumb_IP" />
+                <geom class="plastic_visual" mesh="thumb_DP" material="gray" />
+                <geom class="plastic_collision" name="thumb_DP" mesh="thumb_DP" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="index_MCP_VL" pos="0.02915 -0.0015907 0.084836" quat="-0.020490782602789442 -0.7297567950872297 0.04822873372040762 -0.6816957804593382">
+        <inertial pos="0 -1.7347E-18 3.4694E-18" quat="1.0 0.0 0.0 0.0" mass="0.00028491" diaginertia="5.5493e-09 5.5493e-09 8.6314e-10" />
+        <joint class="MCP_FE" name="index_MCP_FE" />
+        <geom class="plastic_visual" mesh="index_MCP_VL" />
+        <body name="index_PP" pos="0 0 0" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+          <inertial pos="0.022666 -0.00010741 -0.0010693" quat="1.0 0.0 0.0 0.0" mass="0.016443" diaginertia="8.7989e-07 1.5131e-06 1.1516e-06" />
+          <joint class="MCP_AA" name="index_MCP_AA" />
+          <geom class="plastic_visual" mesh="index_PP" />
+          <geom class="plastic_collision" mesh="index_PP" />
+          <body name="index_MP" pos="0.045 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+            <inertial pos="0.017894 -0.0011333 -0.0010315" quat="1.0 0.0 0.0 0.0" mass="0.017279" diaginertia="4.856e-07 6.7437e-07 8.6986e-07" />
+            <joint class="PIP" name="index_PIP" />
+            <geom class="plastic_visual" mesh="index_MP" />
+            <geom class="plastic_collision" mesh="index_MP" />
+            <body name="index_DP" pos="0.031015 0 0" quat="1.0 0.0 0.0 0.0">
+              <inertial pos="0.012278 -0.00092367 0.00025595" quat="1.0 0.0 0.0 0.0" mass="0.0067981" diaginertia="1.3005e-07 2.1399e-07 1.7633e-07" />
+              <joint class="DIP" name="index_DIP" />
+              <geom class="plastic_visual" mesh="index_DP" material="gray" />
+              <geom class="plastic_collision" name="index_DP" mesh="index_DP" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="middle_MCP_VL" pos="0.0091638 0.0012525 0.089927" quat="9.381839456086127e-07 0.7071054825106139 -9.381873917569988e-07 0.7071080798588512">
+        <inertial pos="1.3878E-17 -1.9516E-18 8.6736E-18" quat="1.0 0.0 0.0 0.0" mass="0.00028491" diaginertia="5.5493e-09 5.5493e-09 8.6314e-10" />
+        <joint class="MCP_FE" name="middle_MCP_FE" />
+        <geom class="plastic_visual" mesh="middle_MCP_VL" />
+        <body name="middle_PP" pos="0 0 0" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+          <inertial pos="0.022666 -0.00010909 -0.0010691" quat="1.0 0.0 0.0 0.0" mass="0.016439" diaginertia="8.7989e-07 1.5129e-06 1.1513e-06" />
+          <joint class="MCP_AA" name="middle_MCP_AA" />
+          <geom class="plastic_visual" mesh="middle_PP" />
+          <geom class="plastic_collision" mesh="middle_PP" />
+          <body name="middle_MP" pos="0.045 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+            <inertial pos="0.017894 -0.001133 -0.0010319" quat="1.0 0.0 0.0 0.0" mass="0.017277" diaginertia="4.8557e-07 6.7426e-07 8.6977e-07" />
+            <joint class="PIP" name="middle_PIP" />
+            <geom class="plastic_visual" mesh="middle_MP" />
+            <geom class="plastic_collision" mesh="middle_MP" />
+            <body name="middle_DP" pos="0.031015 0 0" quat="1.0 0.0 0.0 0.0">
+              <inertial pos="0.012278 -0.00092364 0.00025596" quat="1.0 0.0 0.0 0.0" mass="0.0067982" diaginertia="1.3005e-07 2.1399e-07 1.7633e-07" />
+              <joint class="DIP" name="middle_DIP" />
+              <geom class="plastic_visual" mesh="middle_DP" material="gray" />
+              <geom class="plastic_collision" name="middle_DP" mesh="middle_DP" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="ring_MCP_VL" pos="-0.011605 0.00047458 0.084667" quat="0.06662651538938308 -0.685480668092651 -0.06271155456355973 -0.7223187814549354">
+        <inertial pos="0 0 -3.4694E-18" quat="1.0 0.0 0.0 0.0" mass="0.00028491" diaginertia="5.5493e-09 5.5493e-09 8.6314e-10" />
+        <joint class="MCP_FE" name="ring_MCP_FE" />
+        <geom class="plastic_visual" mesh="ring_MCP_VL" />
+        <body name="ring_PP" pos="0 0 0" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+          <inertial pos="0.022666 -0.00010739 -0.0010692" quat="1.0 0.0 0.0 0.0" mass="0.016441" diaginertia="8.7987e-07 1.5131e-06 1.1516e-06" />
+          <joint class="MCP_AA" name="ring_MCP_AA" />
+          <geom class="plastic_visual" mesh="ring_PP" />
+          <geom class="plastic_collision" mesh="ring_PP" />
+          <body name="ring_MP" pos="0.045 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+            <inertial pos="0.017894 -0.0011334 -0.0010312" quat="1.0 0.0 0.0 0.0" mass="0.017279" diaginertia="4.856e-07 6.7433e-07 8.6987e-07" />
+            <joint class="PIP" name="ring_PIP" />
+            <geom class="plastic_visual" mesh="ring_MP" />
+            <geom class="plastic_collision" mesh="ring_MP" />
+            <body name="ring_DP" pos="0.031015 0 0" quat="1.0 0.0 0.0 0.0">
+              <inertial pos="0.012278 -0.00092365 0.00025597" quat="1.0 0.0 0.0 0.0" mass="0.0067981" diaginertia="1.3005e-07 2.1399e-07 1.7633e-07" />
+              <joint class="PIP" name="ring_DIP" />
+              <geom class="plastic_visual" mesh="ring_DP" material="gray" />
+              <geom class="plastic_collision" name="ring_DP" mesh="ring_DP" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="pinky_MC" pos="0.0067559 -0.0084892 0.078594" quat="0.5474643680742175 0.17920288853666316 0.12137672172545044 0.808354366507905">
+        <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.016446" diaginertia="8.8004e-07 1.5131e-06 1.1518e-06" />
+        <joint class="CMC" name="pinky_CMC" />
+        <geom class="plastic_visual" mesh="pinky_MC" />
+        <geom class="plastic_collision" mesh="pinky_MC" />
+        <body name="pinky_MCP_VL" pos="0.016003 0.031411 -0.017472" quat="0.6651189304092903 0.39111011703430715 -0.3224588427172446 0.5483338212421949">
+          <inertial pos="1.3878E-17 0 1.0408E-17" quat="1.0 0.0 0.0 0.0" mass="0.00028491" diaginertia="5.5493e-09 5.5493e-09 8.6314e-10" />
+          <joint class="MCP_FE" name="pinky_MCP_FE" />
+          <geom class="plastic_visual" mesh="pinky_MCP_VL" />
+          <body name="pinky_PP" pos="0 0 0" quat="0.7071054825112363 -0.7071080798594735 0.0 0.0">
+            <inertial pos="0.022667 -0.00010945 -0.001069" quat="1.0 0.0 0.0 0.0" mass="0.016446" diaginertia="8.8004e-07 1.5131e-06 1.1518e-06" />
+            <joint class="MCP_AA" name="pinky_MCP_AA" />
+            <geom class="plastic_visual" mesh="pinky_PP" />
+            <geom class="plastic_collision" mesh="pinky_PP" />
+            <body name="pinky_MP" pos="0.045 0 0" quat="0.7071054825112363 0.7071080798594735 0.0 0.0">
+              <inertial pos="0.017894 -0.0011336 -0.0010307" quat="1.0 0.0 0.0 0.0" mass="0.01728" diaginertia="4.8561e-07 6.7438e-07 8.6992e-07" />
+              <joint class="PIP" name="pinky_PIP" />
+              <geom class="plastic_visual" mesh="pinky_MP" />
+              <geom class="plastic_collision" mesh="pinky_MP" />
+              <body name="pinky_DP" pos="0.031015 0 0" quat="1.0 0.0 0.0 0.0">
+                <inertial pos="0.012278 -0.0009236 0.00025594" quat="1.0 0.0 0.0 0.0" mass="0.0067983" diaginertia="1.3005e-07 2.14e-07 1.7633e-07" />
+                <joint class="DIP" name="pinky_DIP" />
+                <geom class="plastic_visual" mesh="pinky_DP" material="gray" />
+                <geom class="plastic_collision" name="pinky_DP" mesh="pinky_DP" />
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+     </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="thumb_CMC_FE_ctrl" joint="thumb_CMC_FE" class="thumb_CMC_FE" />
+    <motor name="thumb_CMC_AA_ctrl" joint="thumb_CMC_AA" class="thumb_CMC_AA" />
+    <motor name="thumb_MCP_FE_ctrl" joint="thumb_MCP_FE" class="thumb_MCP_FE" />
+    <motor name="thumb_MCP_AA_ctrl" joint="thumb_MCP_AA" class="thumb_MCP_AA" />
+    <motor name="thumb_IP_ctrl" joint="thumb_IP" class="thumb_IP" />
+    <motor name="index_MCP_FE_ctrl" joint="index_MCP_FE" class="MCP_FE" />
+    <motor name="index_MCP_AA_ctrl" joint="index_MCP_AA" class="MCP_AA" />
+    <motor name="index_PIP_ctrl" joint="index_PIP" class="PIP" />
+    <motor name="index_DIP_ctrl" joint="index_DIP" class="DIP" />
+    <motor name="middle_MCP_FE_ctrl" joint="middle_MCP_FE" class="MCP_FE" />
+    <motor name="middle_MCP_AA_ctrl" joint="middle_MCP_AA" class="MCP_AA" />
+    <motor name="middle_PIP_ctrl" joint="middle_PIP" class="PIP" />
+    <motor name="middle_DIP_ctrl" joint="middle_DIP" class="DIP" />
+    <motor name="ring_MCP_FE_ctrl" joint="ring_MCP_FE" class="MCP_FE" />
+    <motor name="ring_MCP_AA_ctrl" joint="ring_MCP_AA" class="MCP_AA" />
+    <motor name="ring_PIP_ctrl" joint="ring_PIP" class="PIP" />
+    <motor name="ring_DIP_ctrl" joint="ring_DIP" class="DIP" />
+    <motor name="pinky_CMC_ctrl" joint="pinky_CMC" class="CMC" />
+    <motor name="pinky_MCP_FE_ctrl" joint="pinky_MCP_FE" class="MCP_FE" />
+    <motor name="pinky_MCP_AA_ctrl" joint="pinky_MCP_AA" class="MCP_AA" />
+    <motor name="pinky_PIP_ctrl" joint="pinky_PIP" class="PIP" />
+    <motor name="pinky_DIP_ctrl" joint="pinky_DIP" class="DIP" />
+  </actuator>
+
+  <contact>
+    <exclude body1="hand_palm_r" body2="thumb_CMC_VL" />
+    <exclude body1="hand_palm_r" body2="thumb_MC" />
+    <exclude body1="thumb_CMC_VL" body2="thumb_MC" />
+    <exclude body1="thumb_MC" body2="thumb_MCP_VL" />
+    <exclude body1="thumb_MC" body2="thumb_PP" />
+    <exclude body1="thumb_MCP_VL" body2="thumb_PP" />
+    <exclude body1="thumb_PP" body2="thumb_DP" />
+    <exclude body1="hand_palm_r" body2="index_MCP_VL" />
+    <exclude body1="hand_palm_r" body2="index_PP" />
+    <exclude body1="index_MCP_VL" body2="index_PP" />
+    <exclude body1="index_PP" body2="index_MP" />
+    <exclude body1="index_MP" body2="index_DP" />
+    <exclude body1="hand_palm_r" body2="middle_MCP_VL" />
+    <exclude body1="hand_palm_r" body2="middle_PP" />
+    <exclude body1="middle_MCP_VL" body2="middle_PP" />
+    <exclude body1="middle_PP" body2="middle_MP" />
+    <exclude body1="middle_MP" body2="middle_DP" />
+    <exclude body1="hand_palm_r" body2="ring_MCP_VL" />
+    <exclude body1="hand_palm_r" body2="ring_PP" />
+    <exclude body1="ring_MCP_VL" body2="ring_PP" />
+    <exclude body1="ring_PP" body2="ring_MP" />
+    <exclude body1="ring_MP" body2="ring_DP" />
+    <exclude body1="hand_palm_r" body2="pinky_MC" />
+    <exclude body1="pinky_MC" body2="pinky_MCP_VL" />
+    <exclude body1="pinky_MC" body2="pinky_PP" />
+    <exclude body1="pinky_MCP_VL" body2="pinky_PP" />
+    <exclude body1="pinky_PP" body2="pinky_MP" />
+    <exclude body1="pinky_MP" body2="pinky_DP" />
+  </contact>
+</mujoco>

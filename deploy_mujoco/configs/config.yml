@@ -1,0 +1,10 @@
+model_path: "xmls/scene_mjx_cylinder.xml"
+grasp_cache: "cache/sharpa_ha3_grasp_cylinder_default_50k_s075.npy"
+device: 'cuda'
+sim:
+  dt: 0.008333333
+  control_freq_inv: 6
+  tac_force_thresh: 0.2
+  reset_height: 0.615
+  kp: 60
+  kd: 4

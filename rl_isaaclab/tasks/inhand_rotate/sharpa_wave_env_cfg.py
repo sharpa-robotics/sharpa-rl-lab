@@ -32,6 +32,18 @@ class EventCfg:
         },
     )
 
+    reset_gravity = EventTerm(
+        func=mdp.randomize_physics_scene_gravity,
+        mode="interval",
+        is_global_time=True,
+        interval_range_s=(5.0, 5.0),  # time_s = num_steps * (decimation * dt)
+        params={
+            "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
+            "operation": "add",
+            "distribution": "gaussian",
+        },
+    )
+
     # randomize_object_com = EventTerm(
     #     func=mdp.randomize_rigid_body_com,
     #     mode="startup",
@@ -73,7 +85,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
         render_interval=2,
-        gravity=(0.0, 0.0, -9.81),
+        gravity=(0.0, 0.0, -0.05),
         physx=PhysxCfg(
             solver_type=1,
             max_position_iteration_count=8,

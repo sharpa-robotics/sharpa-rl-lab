@@ -1,0 +1,713 @@
+--- git status ---
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   deploy_mujoco/xmls/cylinder.xml
+	modified:   rl_isaaclab/scripts/train.py
+	modified:   rl_isaaclab/tasks/inhand_rotate/__init__.py
+	modified:   rl_isaaclab/tasks/inhand_rotate/agents/rsl_rl_ppo_cfg.py
+	modified:   rl_isaaclab/tasks/inhand_rotate/sharpa_wave_env_cfg.py
+	modified:   rl_isaaclab/tasks/inhand_rotate/sharpa_wave_inhand_rotate_env.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	assets/
+	logs/
+	outputs/
+	pyproject.toml
+	rl_isaaclab/__init__.py
+	rl_isaaclab/tasks/__init__.py
+	sharpa_tac_rl.egg-info/
+
+no changes added to commit (use "git add" and/or "git commit -a") 
+
+
+--- git diff ---
+diff --git a/deploy_mujoco/xmls/cylinder.xml b/deploy_mujoco/xmls/cylinder.xml
+index 26d79a6..60bc99a 100644
+--- a/deploy_mujoco/xmls/cylinder.xml
++++ b/deploy_mujoco/xmls/cylinder.xml
+@@ -6,7 +6,7 @@
+   </default>
+ 
+   <worldbody>
+-    <body name="cylinder" pos="0.002 0.051 0.635" quat="1 0 0 0" childclass="cylinder">
++    <body name="cylinder" pos="0.003 0.054 0.635" quat="1 0 0 0" childclass="cylinder">
+       <freejoint name="cylinder_freejoint"/>
+       <geom name="cylinder" type="cylinder" size="0.035 0.024" contype="1" conaffinity="1" mass="0.05" group="2"/>
+       <site name="cylinder_center" pos="0 0 0" group="4"/>
+diff --git a/rl_isaaclab/scripts/train.py b/rl_isaaclab/scripts/train.py
+index e534079..e5f3c47 100644
+--- a/rl_isaaclab/scripts/train.py
++++ b/rl_isaaclab/scripts/train.py
+@@ -89,6 +89,7 @@ from isaaclab.utils.io import dump_pickle, dump_yaml
+ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+ 
+ import isaaclab_tasks  # noqa: F401
++import rl_isaaclab.tasks.inhand_rotate
+ from isaaclab_tasks.utils import get_checkpoint_path
+ from isaaclab_tasks.utils.hydra import hydra_task_config
+ 
+diff --git a/rl_isaaclab/tasks/inhand_rotate/__init__.py b/rl_isaaclab/tasks/inhand_rotate/__init__.py
+index 7b3db80..e122ef2 100644
+--- a/rl_isaaclab/tasks/inhand_rotate/__init__.py
++++ b/rl_isaaclab/tasks/inhand_rotate/__init__.py
+@@ -6,16 +6,12 @@ from . import agents
+ # Register Gym environments.
+ ##
+ 
+-inhand_task_entry = "isaaclab_rl.task.inhand_rotate"
+-
+ gym.register(
+     id="Isaac-Inhand-Rotate-Sharpa-Wave-v0",
+-    entry_point=f"{inhand_task_entry}.sharpa_wave_inhand_rotate_env:InHandManipulationEnv",
++    entry_point=f"rl_isaaclab.tasks.inhand_rotate.sharpa_wave_inhand_rotate_env:SharpaWaveInhandRotateEnv",
+     disable_env_checker=True,
+     kwargs={
+-        "env_cfg_entry_point": f"{__name__}.allegro_hand_env_cfg:AllegroHandEnvCfg",
+-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:AllegroHandPPORunnerCfg",
+-        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
++        "env_cfg_entry_point": f"{__name__}.sharpa_wave_env_cfg:SharpaWaveEnvCfg",
++        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:SharpaWavePPORunnerCfg",
+     },
+ )
+diff --git a/rl_isaaclab/tasks/inhand_rotate/agents/rsl_rl_ppo_cfg.py b/rl_isaaclab/tasks/inhand_rotate/agents/rsl_rl_ppo_cfg.py
+index 6dd5f3c..c575020 100644
+--- a/rl_isaaclab/tasks/inhand_rotate/agents/rsl_rl_ppo_cfg.py
++++ b/rl_isaaclab/tasks/inhand_rotate/agents/rsl_rl_ppo_cfg.py
+@@ -9,16 +9,16 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
+ 
+ 
+ @configclass
+-class AllegroHandPPORunnerCfg(RslRlOnPolicyRunnerCfg):
++class SharpaWavePPORunnerCfg(RslRlOnPolicyRunnerCfg):
+     num_steps_per_env = 16
+     max_iterations = 10000
+     save_interval = 250
+-    experiment_name = "allegro_hand"
++    experiment_name = "sharpa_wave_inhand_rotate"
+     empirical_normalization = True
+     policy = RslRlPpoActorCriticCfg(
+         init_noise_std=1.0,
+-        actor_hidden_dims=[1024, 512, 256, 128],
+-        critic_hidden_dims=[1024, 512, 256, 128],
++        actor_hidden_dims=[512, 256, 128],
++        critic_hidden_dims=[512, 256, 128],
+         activation="elu",
+     )
+     algorithm = RslRlPpoAlgorithmCfg(
+diff --git a/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_env_cfg.py b/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_env_cfg.py
+index f03d4fd..d3601bd 100644
+--- a/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_env_cfg.py
++++ b/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_env_cfg.py
+@@ -12,6 +12,7 @@ from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+ from isaaclab.managers import EventTermCfg as EventTerm
+ from isaaclab.managers import SceneEntityCfg
+ from isaaclab.envs import DirectRLEnvCfg
++from isaaclab.sensors import ContactSensorCfg
+ from isaaclab.scene import InteractiveSceneCfg
+ from isaaclab.sim import PhysxCfg, SimulationCfg
+ from isaaclab.utils import configclass
+@@ -21,38 +22,45 @@ from isaaclab.utils import configclass
+ class EventCfg:
+     """Configuration for randomization."""
+ 
+-    physics_material = EventTerm(
+-        func=mdp.randomize_rigid_body_material,
+-        mode="startup",
+-        params={
+-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+-            "static_friction_range": (0.8, 0.8),
+-            "dynamic_friction_range": (0.6, 0.6),
+-            "restitution_range": (0.0, 0.0),
+-            "num_buckets": 64,
+-        },
+-    )
+-
+-    add_base_mass = EventTerm(
++    randomize_object_mass = EventTerm(
+         func=mdp.randomize_rigid_body_mass,
+         mode="startup",
+         params={
+-            "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+-            "mass_distribution_params": (-5.0, 5.0),
+-            "operation": "add",
++            "asset_cfg": SceneEntityCfg("object"),
++            "mass_distribution_params": (0.01, 0.25),
++            "operation": "scale",
+         },
+     )
+ 
++    # randomize_object_com = EventTerm(
++    #     func=mdp.randomize_rigid_body_com,
++    #     mode="startup",
++    #     params={
++    #         "asset_cfg": SceneEntityCfg("object"),
++    #         "com_range": {"x": (-0.01, 0.01), "y": (-0.01, 0.01), "z": (-0.01, 0.01)},
++    #     },
++    # )
++
++    # randomize_object_scale = EventTerm(
++    #     func=mdp.randomize_rigid_body_scale,
++    #     mode="startup",
++    #     params={
++    #         "asset_cfg": SceneEntityCfg("object"),
++    #         "scale_range": {"x": (0.75, 0.75), "y": (0.75, 0.75), "z": (0.75, 0.75)},
++    #     }
++    # )
++
+ 
+ @configclass
+ class SharpaWaveEnvCfg(DirectRLEnvCfg):
+     # env
+     episode_length_s = 20.0
+     action_space = 22
+-    observation_space = 147  # (full)
++    observation_space = 147
++    prop_hist_len = 30
++    priv_info_dim = 8
+     state_space = 0
+     asymmetric_obs = False
+-    obs_type = "full"
+     # control
+     decimation = 12
+     clip_obs = 5.0
+@@ -78,7 +86,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
+     robot_cfg: ArticulationCfg = ArticulationCfg(
+         prim_path="/World/envs/env_.*/Robot",
+         spawn=sim_utils.UsdFileCfg(
+-            usd_path=f"usd/sharpa_wave.usd",
++            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha3/wo_hand_base.usd",
+             activate_contact_sensors=True,
+             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                 disable_gravity=True,
+@@ -95,55 +103,96 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
+                 sleep_threshold=0.005,
+                 stabilization_threshold=0.0005,
+             ),
+-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.002, rest_offset=0.0),
++            collision_props=sim_utils.CollisionPropertiesCfg(
++                collision_enabled=True,
++                contact_offset=0.002, 
++                rest_offset=0.0
++            ),
+         ),
+         init_state=ArticulationCfg.InitialStateCfg(
+             pos=(0.0, 0.0, 0.5),
+-            rot=(0.257551, 0.283045, 0.683330, -0.621782),
+-            joint_pos={"^(?!thumb_joint_0).*": 0.0, "thumb_joint_0": 0.28},
++            rot=(0.9063078, -0.4226183, 0, 0),
++            joint_pos={
++                "index_MCP_FE": 0.7191, 
++                "index_MCP_AA": -0.1676,
++                "index_PIP": 0.3840,
++                "index_DIP": 0.7505,
++                "middle_MCP_FE": 0.1623,
++                "middle_MCP_AA": -0.0349,
++                "middle_PIP": 0.8203,
++                "middle_DIP": 0.3630,
++                "pinky_CMC": 0.0,
++                "pinky_MCP_FE": 0.6109,
++                "pinky_MCP_AA": 0.2217,
++                "pinky_PIP": 0.5585,
++                "pinky_DIP": 0.6458,
++                "ring_MCP_FE": 0.1937,
++                "ring_MCP_AA": 0.1745,
++                "ring_PIP": 0.7994,
++                "ring_DIP": 0.3316,
++                "thumb_CMC_FE": 1.918,
++                "thumb_CMC_AA": -0.3489,
++                "thumb_MCP_FE": 0.1484,
++                "thumb_MCP_AA": -0.1745,
++                "thumb_IP": 0.4835
++            },
+         ),
+         actuators={
+             "fingers": ImplicitActuatorCfg(
+                 joint_names_expr=[".*"],
+                 effort_limit_sim=0.5,
+-                stiffness=3.0,
+-                damping=0.1,
+-                friction=0.01,
++                stiffness=0.0,
++                damping=0.0,
++                friction=0.1,
++                armature=0.1,
+             ),
+         },
+         soft_joint_pos_limit_factor=1.0,
+     )
+ 
++    contact_sensor: ContactSensorCfg = ContactSensorCfg(
++        prim_path="/World/envs/env_.*/Robot/.*_DP",
++        history_length=3,
++        force_threshold=0.2
++    )
++
+     actuated_joint_names = [
+-        "index_joint_0",
+-        "middle_joint_0",
+-        "ring_joint_0",
+-        "thumb_joint_0",
+-        "index_joint_1",
+-        "index_joint_2",
+-        "index_joint_3",
+-        "middle_joint_1",
+-        "middle_joint_2",
+-        "middle_joint_3",
+-        "ring_joint_1",
+-        "ring_joint_2",
+-        "ring_joint_3",
+-        "thumb_joint_1",
+-        "thumb_joint_2",
+-        "thumb_joint_3",
++        "index_MCP_FE",
++        "index_MCP_AA",
++        "index_PIP",
++        "index_DIP",
++        "middle_MCP_FE",
++        "middle_MCP_AA",
++        "middle_PIP",
++        "middle_DIP",
++        "pinky_CMC",
++        "pinky_MCP_FE",
++        "pinky_MCP_AA",
++        "pinky_PIP",
++        "pinky_DIP",
++        "ring_MCP_FE",
++        "ring_MCP_AA",
++        "ring_PIP",
++        "ring_DIP",
++        "thumb_CMC_FE",
++        "thumb_CMC_AA",
++        "thumb_MCP_FE",
++        "thumb_MCP_AA",
++        "thumb_IP",
+     ]
+     fingertip_body_names = [
+-        "index_link_3",
+-        "middle_link_3",
+-        "ring_link_3",
+-        "thumb_link_3",
++        "index_DP",
++        "middle_DP",
++        "pinky_DP",
++        "ring_DP",
++        "thumb_DP",
+     ]
+ 
+     # in-hand object
+     object_cfg: RigidObjectCfg = RigidObjectCfg(
+         prim_path="/World/envs/env_.*/object",
+         spawn=sim_utils.UsdFileCfg(
+-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
++            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/cylinder/cylinder.usd",
+             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                 kinematic_enabled=False,
+                 disable_gravity=False,
+@@ -154,19 +203,23 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
+                 stabilization_threshold=0.0025,
+                 max_depenetration_velocity=1000.0,
+             ),
+-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+-            scale=(1.2, 1.2, 1.2),
++            collision_props=sim_utils.CollisionPropertiesCfg(
++                collision_enabled=True,
++                contact_offset=0.002, 
++                rest_offset=0.0
++            ),
++            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
++            scale=(0.75, 0.75, 0.75),
+         ),
+-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.17, 0.56), rot=(1.0, 0.0, 0.0, 0.0)),
++        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.003, 0.054, 0.635), rot=(1.0, 0.0, 0.0, 0.0)),
+     )
+     # scene
+-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.25, replicate_physics=True)
++    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
++    # events
++    events: EventCfg = EventCfg()
+     # reset
+     reset_height_lower = 0.615
+     reset_height_upper = 0.655
+-    reset_position_noise = 0.01  # range of position at reset
+-    reset_dof_pos_noise = 0.2  # range of dof pos at reset
+-    reset_dof_vel_noise = 0.0  # range of dof vel at reset
+     # reward
+     rot_axis = (0, 0, 1)
+     angvel_clip_min = -0.5
+@@ -177,19 +230,21 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
+     torque_penalty_scale = -0.1
+     work_penalty_scale = -0.5
+     # grasp cache
+-    grasp_cache_path = 'cache/sharpa_wave_grasp_cache_50k.npy'
+-    # domain randomization
++    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/rl_isaaclab/cache/sharpa_ha3_grasp_cylinder_default_50k_s075.npy'
++    # noise
++    joint_noise_scale = 0.02
++    # contact
++    contact_smooth = 0.5
++    contact_threshold = 0.2
++    contact_latency = 0.005
++    contact_sensor_noise = 0.01
++    # randomize
+     randomize_pd_gains = True
+     randomize_p_gain_lower = 40
+     randomize_p_gain_upper = 100
+     randomize_d_gain_lower = 3
+     randomize_d_gain_upper = 5
+-    randomize_mass = True
+-    randomize_mass_lower = 0.01
+-    randomize_mass_upper = 0.25
+-    randomize_com = True
+-    randomize_com_lower = -0.01
+-    randomize_com_upper = 0.01
+-    randomize_friction = True
+     randomize_friction_lower = 0.3
+     randomize_friction_upper = 3.0
++    randomize_com_lower = -0.01
++    randomize_com_upper = 0.01
+diff --git a/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_inhand_rotate_env.py b/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_inhand_rotate_env.py
+index 2d4021c..8615eee 100644
+--- a/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_inhand_rotate_env.py
++++ b/rl_isaaclab/tasks/inhand_rotate/sharpa_wave_inhand_rotate_env.py
+@@ -15,6 +15,7 @@ import isaaclab.sim as sim_utils
+ from isaaclab.assets import Articulation, RigidObject
+ from isaaclab.envs import DirectRLEnv
+ from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
++from isaaclab.sensors import ContactSensor
+ from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
+ 
+ if TYPE_CHECKING:
+@@ -30,7 +31,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         self.num_hand_dofs = self.hand.num_joints
+ 
+         # buffers for position targets
+-        self.hand_dof_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
+         self.prev_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
+         self.cur_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
+ 
+@@ -40,6 +40,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         self.object_pos_prev = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
+         self.object_rot_prev = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
+ 
++        # buffers for data
++        self.obs_buf_lag_history = torch.zeros((self.num_envs, 80, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
++        self.at_reset_buf = torch.ones(self.num_envs, device=self.device, dtype=torch.long)
++        self.proprio_hist_buf = torch.zeros((self.num_envs, self.cfg.prop_hist_len, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
++        self.priv_info_buf = torch.zeros((self.num_envs, self.cfg.priv_info_dim), device=self.device, dtype=torch.float)
++
+         # list of actuated joints
+         self.actuated_dof_indices = list()
+         for joint_name in cfg.actuated_joint_names:
+@@ -69,7 +75,22 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
+ 
+         # reward config
+-        self._setup_reward_config(self)
++        self._setup_reward_config()
++
++        # contact buffers
++        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_DP")
++        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["index_DP", "pinky_DP"])
++        self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
++
++        # randomize
++        rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
++        self.set_friction(self.hand, rand_friction, self.num_envs)
++        self.set_friction(self.object, rand_friction, self.num_envs)
++        self.priv_info_buf[:, 3] = rand_friction
++        rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
++        self.set_com(self.object, rand_com, self.num_envs)
++        self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
++        self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
+ 
+     def _setup_scene(self):
+         # add hand, in-hand object, and goal object
+@@ -82,63 +103,43 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         # add articulation to scene - we must register to scene to randomize with EventManager
+         self.scene.articulations["robot"] = self.hand
+         self.scene.rigid_objects["object"] = self.object
++        # contact sensors
++        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
++        self.scene.sensors["contact_sensor"] = self._contact_sensor
+         # add lights
+         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
+         light_cfg.func("/World/Light", light_cfg)
+ 
+-        if self.cfg.randomize_mass:
+-        if self.cfg.randomize_com:
+-            object_com_pose_w = self.object.data.root_com_pos_w + sample_uniform(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper, (self.num_envs, 3), device=self.device)
+-            self.object.write_root_com_pose_to_sim(object_com_pose_w)
+-
+-        if self.cfg.randomize_friction:
+-
+-
+     def _pre_physics_step(self, actions: torch.Tensor) -> None:
+-        actions = saturate(actions, -self.cfg.clip_actions, self.cfg.clip_actions)
++        actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
+         self.actions = actions.clone()
+         targets = self.prev_targets + self.cfg.action_scale * self.actions
+-        self.cur_targets[: self.actuated_dof_indices] = saturate(
++        self.cur_targets[:, self.actuated_dof_indices] = saturate(
+             targets,
+-            self.hand_dof_lower_limits[self.actuated_dof_indices],
+-            self.hand_dof_upper_limits[self.actuated_dof_indices],
++            self.hand_dof_lower_limits[:, self.actuated_dof_indices],
++            self.hand_dof_upper_limits[:, self.actuated_dof_indices],
+         )
+         self.object_pos_prev[:] = self.object_pos
+         self.object_rot_prev[:] = self.object_rot
+ 
+     def _apply_action(self) -> None:
+-        self._compute_intermediate_values()
++        self._refresh_lab()
+         if self.cfg.torque_control:
+             torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
+-            self.torques = saturate(torques, -0.5, 0.5).clone()
+-            self.hand.set_joint_effort_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
++            self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
++            self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
+         else:
+             self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
+         self.prev_targets[:, self.actuated_dof_indices] = self.cur_targets[:, self.actuated_dof_indices]
+ 
+     def _get_observations(self) -> dict:
+-        if self.cfg.asymmetric_obs:
+-            self.fingertip_force_sensors = self.hand.root_physx_view.get_link_incoming_joint_force()[
+-                :, self.finger_bodies
+-            ]
+-
+-        if self.cfg.obs_type == "openai":
+-            obs = self.compute_reduced_observations()
+-        elif self.cfg.obs_type == "full":
+-            obs = self.compute_full_observations()
+-        else:
+-            print("Unknown observations type!")
+-
+-        if self.cfg.asymmetric_obs:
+-            states = self.compute_full_state()
+-
++        self._refresh_lab()
++        obs = self.compute_observations()
+         observations = {"policy": obs}
+-        if self.cfg.asymmetric_obs:
+-            observations = {"policy": obs, "critic": states}
+         return observations
+ 
+     def _get_rewards(self) -> torch.Tensor:
+-        rotate_reward = saturate(self.object_angvel * self.rot_axis, self.cfg.angvel_clip_min, self.cfg.angvel_clip_max)
++        rotate_reward = saturate((self.object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
+         object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
+         pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
+         torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
+@@ -165,9 +166,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         return total_reward
+ 
+     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
+-        self._compute_intermediate_values()
+-        height_reset_upper = self.object_pos > self.cfg.reset_height_upper
+-        height_reset_lower = self.object_pos < self.cfg.reset_height_lower
++        self._refresh_lab()
++        height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
++        height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
+         height_reset = height_reset_upper | height_reset_lower
+         time_out = self.episode_length_buf >= self.max_episode_length - 1
+         return height_reset, time_out
+@@ -191,28 +192,34 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         object_default_state = self.object.data.default_root_state.clone()[env_ids]
+         # global object positions
+         object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
+-        object_default_state[:, 3:7] = sampled_pose[:, 25:]
++        object_default_state[:, 4:7] = sampled_pose[:, 25:28]
++        object_default_state[:, 3] = sampled_pose[:, 28]
+         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
++
+         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
+         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
+ 
+         # reset hand
+-        dof_pos = sampled_pose[:, :22]
++        dof_pos = self._joint_idx_gym2lab(sampled_pose[:, :22])
+         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
+ 
+         self.prev_targets[env_ids] = dof_pos
+         self.cur_targets[env_ids] = dof_pos
+-        self.hand_dof_targets[env_ids] = dof_pos
+ 
+         self.hand.set_joint_position_target(dof_pos, env_ids=env_ids)
+         self.hand.write_joint_state_to_sim(dof_pos, dof_vel, env_ids=env_ids)
+ 
+-        self._compute_intermediate_values()
++        self._refresh_lab()
+ 
+-        self.object_pos_prev[env_ids] = self.object_pos
+-        self.object_rot_prev[env_ids] = self.object_rot
++        self.object_pos_prev[env_ids] = self.object_pos[env_ids]
++        self.object_rot_prev[env_ids] = self.object_rot[env_ids]
+ 
+-    def _compute_intermediate_values(self):
++        # reset data buffers
++        self.last_contacts[env_ids] = 0
++        self.proprio_hist_buf[env_ids] = 0
++        self.at_reset_buf[env_ids] = 1
++
++    def _refresh_lab(self):
+         # data for hand
+         self.fingertip_pos = self.hand.data.body_pos_w[:, self.finger_bodies]
+         self.fingertip_rot = self.hand.data.body_quat_w[:, self.finger_bodies]
+@@ -232,79 +239,70 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
+         self.object_linvel = self.object.data.root_lin_vel_w
+         self.object_angvel = self.object.data.root_ang_vel_w
+ 
+-    def compute_reduced_observations(self):
+-        # Per https://arxiv.org/pdf/1808.00177.pdf Table 2
+-        #   Fingertip positions
+-        #   Object Position, but not orientation
+-        #   Relative target orientation
+-        obs = torch.cat(
+-            (
+-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
+-                self.object_pos,
+-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
+-                self.actions,
+-            ),
+-            dim=-1,
+-        )
+-
+-        return obs
+-
+-    def compute_full_observations(self):
+-        obs = torch.cat(
+-            (
+-                # hand
+-                unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits),
+-                self.cfg.vel_obs_scale * self.hand_dof_vel,
+-                # object
+-                self.object_pos,
+-                self.object_rot,
+-                self.object_linvel,
+-                self.cfg.vel_obs_scale * self.object_angvel,
+-                # goal
+-                self.in_hand_pos,
+-                self.goal_rot,
+-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
+-                # fingertips
+-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
+-                self.fingertip_rot.view(self.num_envs, self.num_fingertips * 4),
+-                self.fingertip_velocities.view(self.num_envs, self.num_fingertips * 6),
+-                # actions
+-                self.actions,
+-            ),
+-            dim=-1,
+-        )
+-        return obs
+-
+-    def compute_full_state(self):
+-        states = torch.cat(
+-            (
+-                # hand
+-                unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits),
+-                self.cfg.vel_obs_scale * self.hand_dof_vel,
+-                # object
+-                self.object_pos,
+-                self.object_rot,
+-                self.object_linvel,
+-                self.cfg.vel_obs_scale * self.object_angvel,
+-                # goal
+-                self.in_hand_pos,
+-                self.goal_rot,
+-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
+-                # fingertips
+-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
+-                self.fingertip_rot.view(self.num_envs, self.num_fingertips * 4),
+-                self.fingertip_velocities.view(self.num_envs, self.num_fingertips * 6),
+-                self.cfg.force_torque_obs_scale
+-                * self.fingertip_force_sensors.view(self.num_envs, self.num_fingertips * 6),
+-                # actions
+-                self.actions,
+-            ),
+-            dim=-1,
+-        )
+-        return states
++    def compute_observations(self):
++        # contact
++        net_contact_forces_history = self._contact_sensor.data.net_forces_w_history[:, :, self._contact_body_ids, :]
++        norm_contact_forces_history = torch.norm(net_contact_forces_history, dim=-1)
++        smooth_contact_forces = norm_contact_forces_history[:, 0, :] * self.cfg.contact_smooth + norm_contact_forces_history[:, 1, :] * (1 - self.cfg.contact_smooth)
++        binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)
++        binary_contacts[:, self._contact_body_ids_disable] = 0.0
++        latency_samples = torch.rand_like(self.last_contacts)
++        latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
++        self.last_contacts = self.last_contacts * latency + binary_contacts * (1 - latency)
++        mask = torch.rand_like(self.last_contacts)
++        mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
++        sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
++
++        # deal with normal observation, do sliding window
++        prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
++        joint_noise_matrix = (torch.rand(self.hand_dof_pos.shape, device=self.device) * 2.0 - 1.0) * self.cfg.joint_noise_scale
++        cur_obs_buf = unscale(
++            joint_noise_matrix + self.hand_dof_pos, 
++            self.hand_dof_lower_limits, 
++            self.hand_dof_upper_limits
++        ).clone().unsqueeze(1)
++        cur_tar_buf = self.cur_targets[:, None]
++        cur_obs_buf = torch.cat([cur_obs_buf, cur_tar_buf], dim=-1)
++        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.clone().unsqueeze(1)], dim=-1)
++        self.obs_buf_lag_history[:] = torch.cat([prev_obs_buf, cur_obs_buf], dim=1)
++
++        # refill the initialized buffers
++        at_reset_env_ids = self.at_reset_buf.nonzero(as_tuple=False).squeeze(-1)
++        self.obs_buf_lag_history[at_reset_env_ids, :, 0:22] = unscale(
++            self.hand_dof_pos[at_reset_env_ids], 
++            self.hand_dof_lower_limits[at_reset_env_ids],
++            self.hand_dof_upper_limits[at_reset_env_ids],
++        ).clone().unsqueeze(1)
++        self.obs_buf_lag_history[at_reset_env_ids, :, 22:44] = self.hand_dof_pos[at_reset_env_ids].unsqueeze(1)
++        self.obs_buf_lag_history[at_reset_env_ids, :, 44:49] = sensed_contacts[at_reset_env_ids].unsqueeze(1)
++        self.at_reset_buf[at_reset_env_ids] = 0
++        obs_buf = (self.obs_buf_lag_history[:, -3:].reshape(self.num_envs, -1)).clone()
++
++        self.proprio_hist_buf[:] = self.obs_buf_lag_history[:, -self.cfg.prop_hist_len:].clone()
++        self.priv_info_buf[:, 0:3] = self.object_pos
++
++        return torch.cat([obs_buf, self.priv_info_buf], dim=-1)
++    
++    def set_friction(self, asset, value, num_envs):
++        """Update material properties for a given asset."""
++        materials = asset.root_physx_view.get_material_properties()
++        value = value.reshape(self.num_envs, 1).repeat(1, materials[..., 0].shape[1])
++        materials[..., 0] = value  # Static friction.
++        materials[..., 1] = value  # Dynamic friction.
++        env_ids = torch.arange(num_envs, device="cpu")
++        asset.root_physx_view.set_material_properties(materials, env_ids)
++
++    def set_com(self, asset, value, num_envs):
++        coms = asset.root_physx_view.get_coms().clone()
++        coms[:, :3] += value
++        env_ids = torch.arange(num_envs, device="cpu")
++        asset.root_physx_view.set_coms(coms, env_ids)
+     
+     def _setup_reward_config(self):
+-        self.rot_axis = self.cfg.rot_axis.repeat(self.num_envs, 1).to(self.device)
++        self.rot_axis = torch.tensor(self.cfg.rot_axis).repeat(self.num_envs, 1).to(self.device)
++
++    def _joint_idx_gym2lab(self, pos):
++        return pos[:, [0, 4, 8, 13, 17, 1, 5, 9, 14, 18, 2, 6, 10, 15, 19, 3, 7, 11, 16, 20, 12, 21]]
+ 
+ 
+ @torch.jit.script
+@@ -337,7 +335,7 @@ def compute_rewards(
+     object_linvel_penalty: torch.Tensor, object_linvel_penalty_scale: float,
+     pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
+     torque_penalty: torch.Tensor, torque_penalty_scale: float,
+-    work_penalty: float, work_penalty_scale: float,
++    work_penalty: torch.Tensor, work_penalty_scale: float,
+ ):
+     reward = rotate_reward * rotate_reward_scale
+     reward += object_linvel_penalty * object_linvel_penalty_scale

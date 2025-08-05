@@ -1,0 +1,11 @@
+{
+    "version": "1.0",
+    "file_records": [
+        {
+            "source_url": "/home/renrenyuan/sharpa_tac_rl/assets/cylinder/cylinder.usd",
+            "source_hash": "71e3f8354e856ef928224c9366317b5fa209059f",
+            "target_url": "./cylinder.usd",
+            "target_hash": "6853327fd1925b611673ea56ae42e9d6c867184b"
+        }
+    ]
+}

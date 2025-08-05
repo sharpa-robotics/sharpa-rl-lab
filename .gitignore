@@ -3,3 +3,4 @@ __pycache__/
 *.pt
 *.STL
 *.npy
+*.egg-info/

@@ -15,6 +15,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
+from isaaclab.sensors import ContactSensor
 from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
 
 if TYPE_CHECKING:
@@ -30,7 +31,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.num_hand_dofs = self.hand.num_joints
 
         # buffers for position targets
-        self.hand_dof_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
         self.prev_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
         self.cur_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
 
@@ -39,6 +39,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.object_rot = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
         self.object_pos_prev = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
         self.object_rot_prev = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
+
+        # buffers for data
+        self.obs_buf_lag_history = torch.zeros((self.num_envs, 80, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
+        self.at_reset_buf = torch.ones(self.num_envs, device=self.device, dtype=torch.long)
+        self.proprio_hist_buf = torch.zeros((self.num_envs, self.cfg.prop_hist_len, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
+        self.priv_info_buf = torch.zeros((self.num_envs, self.cfg.priv_info_dim), device=self.device, dtype=torch.float)
 
         # list of actuated joints
         self.actuated_dof_indices = list()
@@ -69,7 +75,22 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
 
         # reward config
-        self._setup_reward_config(self)
+        self._setup_reward_config()
+
+        # contact buffers
+        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_DP")
+        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["index_DP", "pinky_DP"])
+        self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
+
+        # randomize
+        rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
+        self.set_friction(self.hand, rand_friction, self.num_envs)
+        self.set_friction(self.object, rand_friction, self.num_envs)
+        self.priv_info_buf[:, 3] = rand_friction
+        rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
+        self.set_com(self.object, rand_com, self.num_envs)
+        self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
+        self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
 
     def _setup_scene(self):
         # add hand, in-hand object, and goal object
@@ -82,63 +103,43 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # add articulation to scene - we must register to scene to randomize with EventManager
         self.scene.articulations["robot"] = self.hand
         self.scene.rigid_objects["object"] = self.object
+        # contact sensors
+        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+        self.scene.sensors["contact_sensor"] = self._contact_sensor
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
 
-        if self.cfg.randomize_mass:
-        if self.cfg.randomize_com:
-            object_com_pose_w = self.object.data.root_com_pos_w + sample_uniform(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper, (self.num_envs, 3), device=self.device)
-            self.object.write_root_com_pose_to_sim(object_com_pose_w)
-
-        if self.cfg.randomize_friction:
-
-
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        actions = saturate(actions, -self.cfg.clip_actions, self.cfg.clip_actions)
+        actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
         self.actions = actions.clone()
         targets = self.prev_targets + self.cfg.action_scale * self.actions
-        self.cur_targets[: self.actuated_dof_indices] = saturate(
+        self.cur_targets[:, self.actuated_dof_indices] = saturate(
             targets,
-            self.hand_dof_lower_limits[self.actuated_dof_indices],
-            self.hand_dof_upper_limits[self.actuated_dof_indices],
+            self.hand_dof_lower_limits[:, self.actuated_dof_indices],
+            self.hand_dof_upper_limits[:, self.actuated_dof_indices],
         )
         self.object_pos_prev[:] = self.object_pos
         self.object_rot_prev[:] = self.object_rot
 
     def _apply_action(self) -> None:
-        self._compute_intermediate_values()
+        self._refresh_lab()
         if self.cfg.torque_control:
             torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
-            self.torques = saturate(torques, -0.5, 0.5).clone()
-            self.hand.set_joint_effort_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
+            self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
+            self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         else:
             self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         self.prev_targets[:, self.actuated_dof_indices] = self.cur_targets[:, self.actuated_dof_indices]
 
     def _get_observations(self) -> dict:
-        if self.cfg.asymmetric_obs:
-            self.fingertip_force_sensors = self.hand.root_physx_view.get_link_incoming_joint_force()[
-                :, self.finger_bodies
-            ]
-
-        if self.cfg.obs_type == "openai":
-            obs = self.compute_reduced_observations()
-        elif self.cfg.obs_type == "full":
-            obs = self.compute_full_observations()
-        else:
-            print("Unknown observations type!")
-
-        if self.cfg.asymmetric_obs:
-            states = self.compute_full_state()
-
+        self._refresh_lab()
+        obs = self.compute_observations()
         observations = {"policy": obs}
-        if self.cfg.asymmetric_obs:
-            observations = {"policy": obs, "critic": states}
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-        rotate_reward = saturate(self.object_angvel * self.rot_axis, self.cfg.angvel_clip_min, self.cfg.angvel_clip_max)
+        rotate_reward = saturate((self.object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
         object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
         pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
         torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
@@ -165,9 +166,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        self._compute_intermediate_values()
-        height_reset_upper = self.object_pos > self.cfg.reset_height_upper
-        height_reset_lower = self.object_pos < self.cfg.reset_height_lower
+        self._refresh_lab()
+        height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
+        height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         return height_reset, time_out
@@ -191,28 +192,34 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
         # global object positions
         object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
-        object_default_state[:, 3:7] = sampled_pose[:, 25:]
+        object_default_state[:, 4:7] = sampled_pose[:, 25:28]
+        object_default_state[:, 3] = sampled_pose[:, 28]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
+
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
 
         # reset hand
-        dof_pos = sampled_pose[:, :22]
+        dof_pos = self._joint_idx_gym2lab(sampled_pose[:, :22])
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
 
         self.prev_targets[env_ids] = dof_pos
         self.cur_targets[env_ids] = dof_pos
-        self.hand_dof_targets[env_ids] = dof_pos
 
         self.hand.set_joint_position_target(dof_pos, env_ids=env_ids)
         self.hand.write_joint_state_to_sim(dof_pos, dof_vel, env_ids=env_ids)
 
-        self._compute_intermediate_values()
+        self._refresh_lab()
 
-        self.object_pos_prev[env_ids] = self.object_pos
-        self.object_rot_prev[env_ids] = self.object_rot
+        self.object_pos_prev[env_ids] = self.object_pos[env_ids]
+        self.object_rot_prev[env_ids] = self.object_rot[env_ids]
 
-    def _compute_intermediate_values(self):
+        # reset data buffers
+        self.last_contacts[env_ids] = 0
+        self.proprio_hist_buf[env_ids] = 0
+        self.at_reset_buf[env_ids] = 1
+
+    def _refresh_lab(self):
         # data for hand
         self.fingertip_pos = self.hand.data.body_pos_w[:, self.finger_bodies]
         self.fingertip_rot = self.hand.data.body_quat_w[:, self.finger_bodies]
@@ -232,79 +239,70 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.object_linvel = self.object.data.root_lin_vel_w
         self.object_angvel = self.object.data.root_ang_vel_w
 
-    def compute_reduced_observations(self):
-        # Per https://arxiv.org/pdf/1808.00177.pdf Table 2
-        #   Fingertip positions
-        #   Object Position, but not orientation
-        #   Relative target orientation
-        obs = torch.cat(
-            (
-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
-                self.object_pos,
-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
-                self.actions,
-            ),
-            dim=-1,
-        )
+    def compute_observations(self):
+        # contact
+        net_contact_forces_history = self._contact_sensor.data.net_forces_w_history[:, :, self._contact_body_ids, :]
+        norm_contact_forces_history = torch.norm(net_contact_forces_history, dim=-1)
+        smooth_contact_forces = norm_contact_forces_history[:, 0, :] * self.cfg.contact_smooth + norm_contact_forces_history[:, 1, :] * (1 - self.cfg.contact_smooth)
+        binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)
+        binary_contacts[:, self._contact_body_ids_disable] = 0.0
+        latency_samples = torch.rand_like(self.last_contacts)
+        latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
+        self.last_contacts = self.last_contacts * latency + binary_contacts * (1 - latency)
+        mask = torch.rand_like(self.last_contacts)
+        mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
+        sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
 
-        return obs
+        # deal with normal observation, do sliding window
+        prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
+        joint_noise_matrix = (torch.rand(self.hand_dof_pos.shape, device=self.device) * 2.0 - 1.0) * self.cfg.joint_noise_scale
+        cur_obs_buf = unscale(
+            joint_noise_matrix + self.hand_dof_pos, 
+            self.hand_dof_lower_limits, 
+            self.hand_dof_upper_limits
+        ).clone().unsqueeze(1)
+        cur_tar_buf = self.cur_targets[:, None]
+        cur_obs_buf = torch.cat([cur_obs_buf, cur_tar_buf], dim=-1)
+        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.clone().unsqueeze(1)], dim=-1)
+        self.obs_buf_lag_history[:] = torch.cat([prev_obs_buf, cur_obs_buf], dim=1)
 
-    def compute_full_observations(self):
-        obs = torch.cat(
-            (
-                # hand
-                unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits),
-                self.cfg.vel_obs_scale * self.hand_dof_vel,
-                # object
-                self.object_pos,
-                self.object_rot,
-                self.object_linvel,
-                self.cfg.vel_obs_scale * self.object_angvel,
-                # goal
-                self.in_hand_pos,
-                self.goal_rot,
-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
-                # fingertips
-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
-                self.fingertip_rot.view(self.num_envs, self.num_fingertips * 4),
-                self.fingertip_velocities.view(self.num_envs, self.num_fingertips * 6),
-                # actions
-                self.actions,
-            ),
-            dim=-1,
-        )
-        return obs
+        # refill the initialized buffers
+        at_reset_env_ids = self.at_reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        self.obs_buf_lag_history[at_reset_env_ids, :, 0:22] = unscale(
+            self.hand_dof_pos[at_reset_env_ids], 
+            self.hand_dof_lower_limits[at_reset_env_ids],
+            self.hand_dof_upper_limits[at_reset_env_ids],
+        ).clone().unsqueeze(1)
+        self.obs_buf_lag_history[at_reset_env_ids, :, 22:44] = self.hand_dof_pos[at_reset_env_ids].unsqueeze(1)
+        self.obs_buf_lag_history[at_reset_env_ids, :, 44:49] = sensed_contacts[at_reset_env_ids].unsqueeze(1)
+        self.at_reset_buf[at_reset_env_ids] = 0
+        obs_buf = (self.obs_buf_lag_history[:, -3:].reshape(self.num_envs, -1)).clone()
 
-    def compute_full_state(self):
-        states = torch.cat(
-            (
-                # hand
-                unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits),
-                self.cfg.vel_obs_scale * self.hand_dof_vel,
-                # object
-                self.object_pos,
-                self.object_rot,
-                self.object_linvel,
-                self.cfg.vel_obs_scale * self.object_angvel,
-                # goal
-                self.in_hand_pos,
-                self.goal_rot,
-                quat_mul(self.object_rot, quat_conjugate(self.goal_rot)),
-                # fingertips
-                self.fingertip_pos.view(self.num_envs, self.num_fingertips * 3),
-                self.fingertip_rot.view(self.num_envs, self.num_fingertips * 4),
-                self.fingertip_velocities.view(self.num_envs, self.num_fingertips * 6),
-                self.cfg.force_torque_obs_scale
-                * self.fingertip_force_sensors.view(self.num_envs, self.num_fingertips * 6),
-                # actions
-                self.actions,
-            ),
-            dim=-1,
-        )
-        return states
+        self.proprio_hist_buf[:] = self.obs_buf_lag_history[:, -self.cfg.prop_hist_len:].clone()
+        self.priv_info_buf[:, 0:3] = self.object_pos
+
+        return torch.cat([obs_buf, self.priv_info_buf], dim=-1)
+    
+    def set_friction(self, asset, value, num_envs):
+        """Update material properties for a given asset."""
+        materials = asset.root_physx_view.get_material_properties()
+        value = value.reshape(self.num_envs, 1).repeat(1, materials[..., 0].shape[1])
+        materials[..., 0] = value  # Static friction.
+        materials[..., 1] = value  # Dynamic friction.
+        env_ids = torch.arange(num_envs, device="cpu")
+        asset.root_physx_view.set_material_properties(materials, env_ids)
+
+    def set_com(self, asset, value, num_envs):
+        coms = asset.root_physx_view.get_coms().clone()
+        coms[:, :3] += value
+        env_ids = torch.arange(num_envs, device="cpu")
+        asset.root_physx_view.set_coms(coms, env_ids)
     
     def _setup_reward_config(self):
-        self.rot_axis = self.cfg.rot_axis.repeat(self.num_envs, 1).to(self.device)
+        self.rot_axis = torch.tensor(self.cfg.rot_axis).repeat(self.num_envs, 1).to(self.device)
+
+    def _joint_idx_gym2lab(self, pos):
+        return pos[:, [0, 4, 8, 13, 17, 1, 5, 9, 14, 18, 2, 6, 10, 15, 19, 3, 7, 11, 16, 20, 12, 21]]
 
 
 @torch.jit.script
@@ -337,7 +335,7 @@ def compute_rewards(
     object_linvel_penalty: torch.Tensor, object_linvel_penalty_scale: float,
     pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
-    work_penalty: float, work_penalty_scale: float,
+    work_penalty: torch.Tensor, work_penalty_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
     reward += object_linvel_penalty * object_linvel_penalty_scale

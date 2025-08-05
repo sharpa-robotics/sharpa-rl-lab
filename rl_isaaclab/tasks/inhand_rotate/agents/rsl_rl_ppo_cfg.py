@@ -9,16 +9,16 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 
 
 @configclass
-class AllegroHandPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class SharpaWavePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 16
     max_iterations = 10000
     save_interval = 250
-    experiment_name = "allegro_hand"
+    experiment_name = "sharpa_wave_inhand_rotate"
     empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_hidden_dims=[1024, 512, 256, 128],
-        critic_hidden_dims=[1024, 512, 256, 128],
+        actor_hidden_dims=[512, 256, 128],
+        critic_hidden_dims=[512, 256, 128],
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

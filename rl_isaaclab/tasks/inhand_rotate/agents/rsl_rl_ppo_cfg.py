@@ -11,8 +11,8 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class SharpaWavePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 16
-    max_iterations = 10000
-    save_interval = 250
+    max_iterations = 1000000
+    save_interval = 1000
     experiment_name = "sharpa_wave_inhand_rotate"
     empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(

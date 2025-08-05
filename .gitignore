@@ -4,3 +4,5 @@ __pycache__/
 *.STL
 *.npy
 *.egg-info/
+logs/
+outputs/

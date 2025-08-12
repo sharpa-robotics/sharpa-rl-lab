@@ -135,7 +135,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _get_observations(self) -> dict:
         self._refresh_lab()
         obs = self.compute_observations()
-        observations = {"policy": obs}
+        observations = {
+            "policy": obs,
+            "priv_info": self.priv_info_buf,
+            "proprio_hist": self.proprio_hist_buf,
+        }
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
@@ -281,7 +285,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.proprio_hist_buf[:] = self.obs_buf_lag_history[:, -self.cfg.prop_hist_len:].clone()
         self.priv_info_buf[:, 0:3] = self.object_pos
 
-        return torch.cat([obs_buf, self.priv_info_buf], dim=-1)
+        return obs_buf
     
     def set_friction(self, asset, value, num_envs):
         """Update material properties for a given asset."""

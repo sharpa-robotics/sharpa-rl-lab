@@ -36,7 +36,7 @@ class EventCfg:
         func=mdp.randomize_physics_scene_gravity,
         mode="interval",
         is_global_time=True,
-        interval_range_s=(5.0, 5.0),  # time_s = num_steps * (decimation * dt)
+        interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
         params={
             "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
             "operation": "add",

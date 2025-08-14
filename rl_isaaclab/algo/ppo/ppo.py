@@ -40,7 +40,6 @@ class PPO(object):
         # ---- Priv Info ----
         self.priv_info_dim = self.ppo_config['priv_info_dim']
         self.priv_info = self.ppo_config['priv_info']
-        self.proprio_adapt = self.ppo_config['proprio_adapt']
         # ---- Model ----
         net_config = {
             'actor_units': self.network_config["mlp"]["units"],
@@ -48,7 +47,7 @@ class PPO(object):
             'actions_num': self.actions_num,
             'input_shape': self.obs_shape,
             'priv_info': self.priv_info,
-            'proprio_adapt': self.proprio_adapt,
+            'proprio_adapt': False,
             'priv_info_dim': self.priv_info_dim,
         }
         self.model = ActorCritic(net_config)

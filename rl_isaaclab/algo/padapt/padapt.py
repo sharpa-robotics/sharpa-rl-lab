@@ -19,29 +19,28 @@ from tensorboardX import SummaryWriter
 
 class ProprioAdapt(object):
     def __init__(self, env, output_dir, full_config):
-        self.device = full_config['rl_device']
-        self.network_config = full_config.train.network
-        self.ppo_config = full_config.train.ppo
+        self.device = full_config.train["device"]
+        self.network_config = full_config.train["network"]
+        self.ppo_config = full_config.train["algorithm"]
         # ---- build environment ----
         self.env = env
         self.num_actors = self.ppo_config['num_actors']
         self.observation_space = self.env.observation_space
-        self.obs_shape = self.observation_space.shape
+        self.obs_shape = (self.observation_space.shape[1],)
         self.action_space = self.env.action_space
-        self.actions_num = self.action_space.shape[0]
+        self.actions_num = self.action_space.shape[1]
         # ---- Priv Info ----
         self.priv_info = self.ppo_config['priv_info']
         self.priv_info_dim = self.ppo_config['priv_info_dim']
-        self.proprio_adapt = self.ppo_config['proprio_adapt']
         self.proprio_hist_dim = self.env.prop_hist_len
         # ---- Model ----
         net_config = {
-            'actor_units': self.network_config.mlp.units,
-            'priv_mlp_units': self.network_config.priv_mlp.units,
+            'actor_units': self.network_config["mlp"]["units"],
+            'priv_mlp_units': self.network_config["priv_mlp"]["units"],
             'actions_num': self.actions_num,
             'input_shape': self.obs_shape,
             'priv_info': self.priv_info,
-            'proprio_adapt': self.proprio_adapt,
+            'proprio_adapt': True,
             'priv_info_dim': self.priv_info_dim,
         }
         self.model = ActorCritic(net_config)
@@ -49,7 +48,7 @@ class ProprioAdapt(object):
         self.model.eval()
         self.running_mean_std = RunningMeanStd(self.obs_shape).to(self.device)
         self.running_mean_std.eval()
-        self.sa_mean_std = RunningMeanStd((self.proprio_hist_dim, self.env.num_observations//self.env.num_last_obs)).to(self.device)
+        self.sa_mean_std = RunningMeanStd((self.proprio_hist_dim, self.env.num_obs//3)).to(self.device)
         self.sa_mean_std.train()
         # ---- Output Dir ----
         self.output_dir = output_dir

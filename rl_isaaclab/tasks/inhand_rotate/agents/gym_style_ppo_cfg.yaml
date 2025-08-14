@@ -38,7 +38,6 @@ algorithm:
   save_frequency: 500
   max_agent_steps: 5500000000
   # hora setting
-  priv_info: False
+  priv_info: True
   priv_info_dim: 8
   priv_info_embed_dim: 8
-  proprio_adapt: False

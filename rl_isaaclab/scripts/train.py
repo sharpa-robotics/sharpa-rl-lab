@@ -17,6 +17,8 @@ parser = argparse.ArgumentParser(description="Train an RL agent.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument("--cache", type=str, default=None, help="Cache path.")
+parser.add_argument("--load_path", type=str, default=None, help="Checkpoint path.")
 parser.add_argument("--max_agent_steps", type=int, default=None, help="RL Policy training iterations.")
 parser.add_argument("--algorithm", type=str, default=None, help="Run training with multiple GPUs or nodes.")
 parser.add_argument("--resume", action="store_true", default=False, help="Resume training from checkpoint.")
@@ -65,6 +67,8 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]
     agent_cfg["algo"] = args_cli.algorithm if args_cli.algorithm is not None else agent_cfg["algo"]
+    agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
+    env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
     config = ConfigWrapper(agent_cfg, env_cfg)
 
     # specify directory for logging experiments
@@ -80,7 +84,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
     agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
     # load the checkpoint
-    if args_cli.resume or agent_cfg["algo"] == "Distillation":
+    if args_cli.resume or agent_cfg["algo"] == "ProprioAdapt":
         resume_path = agent_cfg["load_path"]
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model

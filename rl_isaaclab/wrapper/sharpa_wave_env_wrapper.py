@@ -40,6 +40,8 @@ class GymStyleEnvWrapper(VecEnv):
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
+        self.prop_hist_len = self.unwrapped.cfg.prop_hist_len
+
         # obtain dimensions of the environment
         if hasattr(self.unwrapped, "action_manager"):
             self.num_actions = self.unwrapped.action_manager.total_action_dim

@@ -204,7 +204,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
 
         # pose cache
-        if self.saved_grasping_states:
+        if self.saved_grasping_states is not None:
             sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
             sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
         else:
@@ -214,8 +214,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
         # global object positions
         object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
-        object_default_state[:, 4:7] = sampled_pose[:, 25:28]
-        object_default_state[:, 3] = sampled_pose[:, 28]
+        object_default_state[:, 3:7] = sampled_pose[:, 25:29]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
 
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)

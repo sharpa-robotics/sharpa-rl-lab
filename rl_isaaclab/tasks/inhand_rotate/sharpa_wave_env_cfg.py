@@ -242,7 +242,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # grasp cache
-    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_ha3_grasp_cylinder_default_50k_s075.npy'
+    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_grasp_50k_540015.074862942.npy'
     # noise
     joint_noise_scale = 0.02
     # contact

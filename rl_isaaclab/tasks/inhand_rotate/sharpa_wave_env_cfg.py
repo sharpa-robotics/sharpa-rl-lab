@@ -256,8 +256,10 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_p_gain_upper = 100
     randomize_d_gain_lower = 3
     randomize_d_gain_upper = 5
+    randomize_friction = True
     randomize_friction_lower = 0.3
     randomize_friction_upper = 3.0
+    randomize_com = True
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01
     # random forces applied to the object

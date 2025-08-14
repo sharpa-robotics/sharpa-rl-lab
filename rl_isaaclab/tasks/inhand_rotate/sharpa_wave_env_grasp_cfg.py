@@ -27,22 +27,22 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (0.01, 0.25),
+            "mass_distribution_params": (0.05, 0.051),
             "operation": "scale",
         },
     )
 
-    reset_gravity = EventTerm(
-        func=mdp.randomize_physics_scene_gravity,
-        mode="interval",
-        is_global_time=True,
-        interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
-        params={
-            "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
-            "operation": "add",
-            "distribution": "gaussian",
-        },
-    )
+    # reset_gravity = EventTerm(
+    #     func=mdp.randomize_physics_scene_gravity,
+    #     mode="interval",
+    #     is_global_time=True,
+    #     interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
+    #     params={
+    #         "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
+    #         "operation": "add",
+    #         "distribution": "gaussian",
+    #     },
+    # )
 
     # randomize_object_com = EventTerm(
     #     func=mdp.randomize_rigid_body_com,
@@ -85,7 +85,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
         render_interval=2,
-        gravity=(0.0, 0.0, -0.05),
+        gravity=(0.0, 0.0, -9.81),
         physx=PhysxCfg(
             solver_type=1,
             max_position_iteration_count=8,
@@ -165,7 +165,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*_DP",
         history_length=3,
-        force_threshold=0.2
+        force_threshold=0.2,
+        filter_prim_paths_expr="/World/envs/env_.*/object",
     )
 
     actuated_joint_names = [
@@ -230,8 +231,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # events
     events: EventCfg = EventCfg()
     # reset
-    reset_height_lower = 0.615
-    reset_height_upper = 0.655
+    reset_height_lower = 0.63
+    reset_height_upper = 0.64
     # reward
     rot_axis = (0, 0, 1)
     angvel_clip_min = -0.5
@@ -251,17 +252,19 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_latency = 0.005
     contact_sensor_noise = 0.01
     # randomize
-    randomize_pd_gains = True
+    randomize_pd_gains = False
     randomize_p_gain_lower = 40
     randomize_p_gain_upper = 100
     randomize_d_gain_lower = 3
     randomize_d_gain_upper = 5
+    randomize_friction = False
     randomize_friction_lower = 0.3
     randomize_friction_upper = 3.0
+    randomize_com = False
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01
     # random forces applied to the object
-    force_scale = 2
-    random_force_prob_scalar = 0.25
+    force_scale = 0.0
+    random_force_prob_scalar = 0.0
     force_decay = 0.9
     force_decay_interval = 0.08

@@ -84,14 +84,16 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
 
         # randomize
-        rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
-        self.set_friction(self.hand, rand_friction, self.num_envs)
-        self.set_friction(self.object, rand_friction, self.num_envs)
-        self.priv_info_buf[:, 3] = rand_friction
-        rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
-        self.set_com(self.object, rand_com, self.num_envs)
+        if self.cfg.randomize_friction:
+            rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
+            self.set_friction(self.hand, rand_friction, self.num_envs)
+            self.set_friction(self.object, rand_friction, self.num_envs)
+            self.priv_info_buf[:, 3] = rand_friction
+        if self.cfg.randomize_com:
+            rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
+            self.set_com(self.object, rand_com, self.num_envs)
+            self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
         self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
-        self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
 
     def _setup_scene(self):
         # add hand, in-hand object, and goal object

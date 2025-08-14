@@ -9,6 +9,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 from collections.abc import Sequence
+import time
 from typing import TYPE_CHECKING
 
 import isaaclab.sim as sim_utils
@@ -19,165 +20,27 @@ from isaaclab.sensors import ContactSensor
 from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
 
 if TYPE_CHECKING:
-    from .sharpa_wave_env_cfg import SharpaWaveEnvCfg
+    from .sharpa_wave_env_grasp_cfg import SharpaWaveEnvCfg
+    from .sharpa_wave_inhand_rotate_env import SharpaWaveInhandRotateEnv
 
 
-class SharpaWaveInhandRotateEnv(DirectRLEnv):
-    cfg: SharpaWaveEnvCfg
-
+class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
     def __init__(self, cfg: SharpaWaveEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
-
-        self.num_hand_dofs = self.hand.num_joints
-
-        # buffers for position targets
-        self.prev_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
-        self.cur_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
-
-        # buffers for object
-        self.object_pos = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
-        self.object_rot = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
-        self.object_pos_prev = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
-        self.object_rot_prev = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
-        self.rb_forces = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
-
-        # buffers for data
-        self.obs_buf_lag_history = torch.zeros((self.num_envs, 80, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
-        self.at_reset_buf = torch.ones(self.num_envs, device=self.device, dtype=torch.long)
-        self.proprio_hist_buf = torch.zeros((self.num_envs, self.cfg.prop_hist_len, self.cfg.observation_space//3), device=self.device, dtype=torch.float)
-        self.priv_info_buf = torch.zeros((self.num_envs, self.cfg.priv_info_dim), device=self.device, dtype=torch.float)
-
-        # list of actuated joints
-        self.actuated_dof_indices = list()
-        for joint_name in cfg.actuated_joint_names:
-            self.actuated_dof_indices.append(self.hand.joint_names.index(joint_name))
-        self.actuated_dof_indices.sort()
-
-        # finger bodies
-        self.finger_bodies = list()
-        for body_name in self.cfg.fingertip_body_names:
-            self.finger_bodies.append(self.hand.body_names.index(body_name))
-        self.finger_bodies.sort()
-        self.num_fingertips = len(self.finger_bodies)
-
-        # joint limits
-        joint_pos_limits = self.hand.root_physx_view.get_dof_limits().to(self.device)
-        self.hand_dof_lower_limits = joint_pos_limits[..., 0]
-        self.hand_dof_upper_limits = joint_pos_limits[..., 1]
-
-        # pd control
-        self.p_gain = self.cfg.pgain
-        self.d_gain = self.cfg.dgain
-        assert type(self.p_gain) in [int, float] and type(self.d_gain) in [int, float], 'assume p_gain and d_gain are only scalars'
-        self.p_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.p_gain
-        self.d_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.d_gain
-
-        # grasp_cache
-        self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
-
-        # reward config
-        self._setup_reward_config()
-
-        # contact buffers
-        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_DP")
-        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["index_DP", "pinky_DP"])
-        self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
-
-        # randomize
-        rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
-        self.set_friction(self.hand, rand_friction, self.num_envs)
-        self.set_friction(self.object, rand_friction, self.num_envs)
-        self.priv_info_buf[:, 3] = rand_friction
-        rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
-        self.set_com(self.object, rand_com, self.num_envs)
-        self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
-        self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
-
-    def _setup_scene(self):
-        # add hand, in-hand object, and goal object
-        self.hand = Articulation(self.cfg.robot_cfg)
-        self.object = RigidObject(self.cfg.object_cfg)
-        # add ground plane
-        spawn_ground_plane(prim_path="/World/ground", cfg=GroundPlaneCfg())
-        # clone and replicate (no need to filter for this environment)
-        self.scene.clone_environments(copy_from_source=False)
-        # add articulation to scene - we must register to scene to randomize with EventManager
-        self.scene.articulations["robot"] = self.hand
-        self.scene.rigid_objects["object"] = self.object
-        # contact sensors
-        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
-        self.scene.sensors["contact_sensor"] = self._contact_sensor
-        # add lights
-        light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
-        light_cfg.func("/World/Light", light_cfg)
+        self.saved_grasping_states = torch.zeros((0, 29), dtype=torch.float32, device=self.device)
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
-        self.actions = actions.clone()
-        targets = self.prev_targets + self.cfg.action_scale * self.actions
-        self.cur_targets[:, self.actuated_dof_indices] = saturate(
-            targets,
-            self.hand_dof_lower_limits[:, self.actuated_dof_indices],
-            self.hand_dof_upper_limits[:, self.actuated_dof_indices],
-        )
-        self.object_pos_prev[:] = self.object_pos
-        self.object_rot_prev[:] = self.object_rot
-
-        if self.cfg.force_scale > 0.0:
-            self.rb_forces *= torch.pow(torch.tensor(self.cfg.force_decay, dtype=torch.float32), self.physics_dt / self.cfg.force_decay_interval)
-            # apply new forces
-            obj_mass = self.object.root_physx_view.get_masses().reshape(self.num_envs).to(self.device)
-            prob = self.cfg.random_force_prob_scalar
-            force_indices = (torch.less(torch.rand(self.num_envs, device=self.device), prob)).nonzero().to(self.device)
-            self.rb_forces[force_indices, :] = torch.randn(self.rb_forces[force_indices, :].shape, device=self.device) * obj_mass[force_indices, None] * self.cfg.force_scale
-            self.object.set_external_force_and_torque(forces=self.rb_forces.reshape(self.num_envs, 1, 3), torques=torch.zeros(self.num_envs, 1, 3))
-
-    def _apply_action(self) -> None:
-        self._refresh_lab()
-        if self.cfg.torque_control:
-            torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
-            self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
-            self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
-        else:
-            self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
-        self.prev_targets[:, self.actuated_dof_indices] = self.cur_targets[:, self.actuated_dof_indices]
-
-    def _get_observations(self) -> dict:
-        self._refresh_lab()
-        obs = self.compute_observations()
-        observations = {
-            "policy": obs,
-            "priv_info": self.priv_info_buf,
-            "proprio_hist": self.proprio_hist_buf,
-        }
-        return observations
+        actions = torch.zeros_like(actions)
+        super()._pre_physics_step(actions)
 
     def _get_rewards(self) -> torch.Tensor:
-        rotate_reward = saturate((self.object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
-        object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
-        pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
-        torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
-        work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
-
-        total_reward = compute_rewards(
-            rotate_reward, self.cfg.rotate_reward_scale,
-            object_linvel_penalty, self.cfg.object_linvel_penalty_scale,
-            pos_diff_penalty, self.cfg.pos_diff_penalty_scale,
-            torque_penalty, self.cfg.torque_penalty_scale,
-            work_penalty, self.cfg.work_penalty_scale,
-        )
-
-        if "log" not in self.extras:
-            self.extras["log"] = dict()
-        self.extras["log"]["rotate_reward"] = rotate_reward.mean()
-        self.extras["log"]["object_linvel_penalty"] = object_linvel_penalty.mean()
-        self.extras["log"]["pos_diff_penalty"] = pos_diff_penalty.mean()
-        self.extras["log"]["torque_penalty"] = torque_penalty.mean()
-        self.extras["log"]["work_penalty"] = work_penalty.mean()
-        self.extras["log"]['roll'] = self.object_angvel[:, 0].mean()
-        self.extras["log"]['pitch'] = self.object_angvel[:, 1].mean()
-        self.extras["log"]['yaw'] = self.object_angvel[:, 2].mean()
-        return total_reward
+        cond1 = torch.norm(self.fingertip_pos - self.object_pos.unsqueeze(1), dim=-1, p=2).all(-1)
+        force_matrix_w = self._contact_sensor.data.force_matrix_w[:, self._contact_body_ids, 0, :]
+        cond2 = torch.norm(force_matrix_w, dim=-1, p=2).sum(-1) >= 3
+        cond3 = torch.less(quat_to_rot(quat_mul(self.object_rot, quat_conjugate(self.object_init_state[:, 3:7]))), 0.05)
+        cond = cond1.float() * cond2.float() * cond3.float()
+        self.reset_buf[cond < 1] = 1
+        return 0
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         self._refresh_lab()
@@ -190,32 +53,50 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _reset_idx(self, env_ids: Sequence[int] | None):
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
-        # resets articulation and rigid body attributes
-        super()._reset_idx(env_ids)
+
+        success = self.episode_length_buf[env_ids] == self.max_episode_length - 1
+        all_states = torch.cat([self.hand_dof_pos, self.object_pos], dim=1)
+        self.saved_grasping_states = torch.cat([self.saved_grasping_states, all_states[env_ids][success]])
+        print('current cache size:', self.saved_grasping_states.shape[0])
+        if len(self.saved_grasping_states) >= 5e4:
+            name = f'cache/sharpa_grasp_50k_{time.perf_counter()}.npy'
+            np.save(name, self.saved_grasping_states[:50000].cpu().numpy())
+            exit()
+
+        self.scene.reset(env_ids)
+
+        # apply events such as randomization for environments that need a reset
+        if self.cfg.events:
+            if "reset" in self.event_manager.available_modes:
+                env_step_count = self._sim_step_counter // self.cfg.decimation
+                self.event_manager.apply(mode="reset", env_ids=env_ids, global_env_step_count=env_step_count)
+
+        # reset noise models
+        if self.cfg.action_noise_model:
+            self._action_noise_model.reset(env_ids)
+        if self.cfg.observation_noise_model:
+            self._observation_noise_model.reset(env_ids)
+
+        # reset the episode length buffer
+        self.episode_length_buf[env_ids] = 0
 
         # pd randomize
         if self.cfg.randomize_pd_gains:
             self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
             self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
 
-        # pose cache
-        sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
-        sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
+        rand_floats = torch_rand_float(-1.0, 1.0, (len(env_ids), self.num_hand_dofs), device=self.device)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
-        # global object positions
-        object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
-        object_default_state[:, 4:7] = sampled_pose[:, 25:28]
-        object_default_state[:, 3] = sampled_pose[:, 28]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
-
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
         self.rb_forces[env_ids, :] = 0.0
 
         # reset hand
-        dof_pos = self._joint_idx_gym2lab(sampled_pose[:, :22])
+        dof_pos = self.hand.data.default_joint_pos[env_ids] + 0.15 * rand_floats[:, 5:5 + self.num_hand_dofs]
+        dof_pos = saturate(dof_pos, self.hand_dof_lower_limits[env_ids], self.hand_dof_upper_limits[env_ids],)
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
 
         self.prev_targets[env_ids] = dof_pos
@@ -358,3 +239,13 @@ def compute_rewards(
     reward += torque_penalty * torque_penalty_scale
     reward += work_penalty * work_penalty_scale
     return reward
+
+@torch.jit.script
+def quat_to_rot(quaternion: torch.Tensor) -> tuple:
+    quaternion = quaternion / torch.norm(quaternion, dim=-1, keepdim=True)
+    angle = 2 * torch.acos(quaternion[:, 3])
+    return angle
+
+@torch.jit.script
+def torch_rand_float(lower, upper, shape, device):
+    return (upper - lower) * torch.rand(*shape, device=device) + lower

@@ -172,16 +172,14 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             work_penalty, self.cfg.work_penalty_scale,
         )
 
-        if "log" not in self.extras:
-            self.extras["log"] = dict()
-        self.extras["log"]["rotate_reward"] = rotate_reward.mean()
-        self.extras["log"]["object_linvel_penalty"] = object_linvel_penalty.mean()
-        self.extras["log"]["pos_diff_penalty"] = pos_diff_penalty.mean()
-        self.extras["log"]["torque_penalty"] = torque_penalty.mean()
-        self.extras["log"]["work_penalty"] = work_penalty.mean()
-        self.extras["log"]['roll'] = self.object_angvel[:, 0].mean()
-        self.extras["log"]['pitch'] = self.object_angvel[:, 1].mean()
-        self.extras["log"]['yaw'] = self.object_angvel[:, 2].mean()
+        self.extras["rotate_reward"] = rotate_reward.mean()
+        self.extras["object_linvel_penalty"] = object_linvel_penalty.mean()
+        self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
+        self.extras["torque_penalty"] = torque_penalty.mean()
+        self.extras["work_penalty"] = work_penalty.mean()
+        self.extras['roll'] = self.object_angvel[:, 0].mean()
+        self.extras['pitch'] = self.object_angvel[:, 1].mean()
+        self.extras['yaw'] = self.object_angvel[:, 2].mean()
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -222,7 +220,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.rb_forces[env_ids, :] = 0.0
 
         # reset hand
-        dof_pos = self._joint_idx_gym2lab(sampled_pose[:, :22])
+        dof_pos = sampled_pose[:, :22]
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
 
         self.prev_targets[env_ids] = dof_pos

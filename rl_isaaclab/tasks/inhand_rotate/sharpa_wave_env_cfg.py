@@ -92,6 +92,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             max_velocity_iteration_count=0,
             bounce_threshold_velocity=0.2,
             gpu_max_rigid_contact_count=8388608, # 2**23
+            gpu_max_rigid_patch_count=5*2**18
         ),
     )
     # robot
@@ -233,6 +234,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     reset_height_lower = 0.615
     reset_height_upper = 0.655
     # reward
+    # primary reward
     rot_axis = (0, 0, 1)
     angvel_clip_min = -0.5
     angvel_clip_max = 0.5
@@ -241,6 +243,13 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     pos_diff_penalty_scale = -0.3
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
+    # auxiliary reward
+    rot_diff_clip_min = -0.025
+    rot_diff_clip_max = 0.025
+    rot_diff_reward_scale = 5.0
+    object_pos_reward_scale = 0.003
+    # rot_diff_reward_scale = 0.0
+    # object_pos_reward_scale = 0.0
     # grasp cache
     grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_grasp_50k_540015.074862942.npy'
     # noise

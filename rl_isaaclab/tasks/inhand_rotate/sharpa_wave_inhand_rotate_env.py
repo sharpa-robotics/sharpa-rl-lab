@@ -158,11 +158,17 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
+        # primary reward
         rotate_reward = saturate((self.object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
         object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
         pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
         torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
         work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
+
+        # auxiliary reward
+        angle_diff = (self.object_angvel * self.rot_axis).sum(-1) * self.step_dt
+        angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
+        object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object.data.default_root_state.clone()[:, :3], dim=-1) + 0.001)
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -170,6 +176,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             pos_diff_penalty, self.cfg.pos_diff_penalty_scale,
             torque_penalty, self.cfg.torque_penalty_scale,
             work_penalty, self.cfg.work_penalty_scale,
+            angle_diff, self.cfg.rot_diff_reward_scale,
+            object_pos_diff, self.cfg.object_pos_reward_scale,
         )
 
         self.extras["rotate_reward"] = rotate_reward.mean()
@@ -180,6 +188,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['roll'] = self.object_angvel[:, 0].mean()
         self.extras['pitch'] = self.object_angvel[:, 1].mean()
         self.extras['yaw'] = self.object_angvel[:, 2].mean()
+        self.extras['object_pos_diff'] = object_pos_diff.mean()
+        self.extras['angle_diff_reward'] = angle_diff.mean()
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -351,10 +361,14 @@ def compute_rewards(
     pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
     work_penalty: torch.Tensor, work_penalty_scale: float,
+    angle_diff: torch.Tensor, rot_diff_reward_scale: float,
+    object_pos_diff: torch.Tensor, object_pos_reward_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
     reward += object_linvel_penalty * object_linvel_penalty_scale
     reward += pos_diff_penalty * pos_diff_penalty_scale
     reward += torque_penalty * torque_penalty_scale
     reward += work_penalty * work_penalty_scale
+    reward += angle_diff * rot_diff_reward_scale
+    reward += object_pos_diff * object_pos_reward_scale
     return reward

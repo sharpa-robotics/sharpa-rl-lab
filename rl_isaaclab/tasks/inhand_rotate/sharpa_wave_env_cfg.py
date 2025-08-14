@@ -165,7 +165,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*_DP",
         history_length=3,
-        force_threshold=0.2
+        force_threshold=0.01
     )
 
     actuated_joint_names = [
@@ -242,7 +242,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # grasp cache
-    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/rl_isaaclab/cache/sharpa_ha3_grasp_cylinder_default_50k_s075.npy'
+    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_ha3_grasp_cylinder_default_50k_s075.npy'
     # noise
     joint_noise_scale = 0.02
     # contact

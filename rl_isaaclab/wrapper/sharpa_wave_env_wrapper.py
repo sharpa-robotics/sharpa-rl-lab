@@ -169,6 +169,9 @@ class GymStyleEnvWrapper(VecEnv):
 
         # return the step information
         return obs_dict, rew, dones, extras
+    
+    def zero_actions(self) -> torch.Tensor:
+        return torch.zeros(self.action_space.shape, device=self.device, dtype=torch.float)
 
     def close(self):  # noqa: D102
         return self.env.close()

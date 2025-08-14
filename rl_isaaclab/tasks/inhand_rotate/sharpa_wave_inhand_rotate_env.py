@@ -73,7 +73,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.d_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.d_gain
 
         # grasp_cache
-        self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
+        if self.cfg.grasp_cache_path:
+            self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
+        else:
+            self.saved_grasping_states = None
 
         # reward config
         self._setup_reward_config()
@@ -201,8 +204,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
 
         # pose cache
-        sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
-        sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
+        if self.saved_grasping_states:
+            sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
+            sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
+        else:
+            raise RuntimeError("No saved grasping states found")
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
@@ -321,16 +327,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _joint_idx_gym2lab(self, pos):
         return pos[:, [0, 4, 8, 13, 17, 1, 5, 9, 14, 18, 2, 6, 10, 15, 19, 3, 7, 11, 16, 20, 12, 21]]
 
-
 @torch.jit.script
 def scale(x, lower, upper):
     return 0.5 * (x + 1.0) * (upper - lower) + lower
 
-
 @torch.jit.script
 def unscale(x, lower, upper):
     return (2.0 * x - upper - lower) / (upper - lower)
-
 
 @torch.jit.script
 def randomize_rotation(rand0, rand1, x_unit_tensor, y_unit_tensor):
@@ -338,13 +341,11 @@ def randomize_rotation(rand0, rand1, x_unit_tensor, y_unit_tensor):
         quat_from_angle_axis(rand0 * np.pi, x_unit_tensor), quat_from_angle_axis(rand1 * np.pi, y_unit_tensor)
     )
 
-
 @torch.jit.script
 def rotation_distance(object_rot, target_rot):
     # Orientation alignment for the cube in hand and goal cube
     quat_diff = quat_mul(object_rot, quat_conjugate(target_rot))
     return 2.0 * torch.asin(torch.clamp(torch.norm(quat_diff[:, 1:4], p=2, dim=-1), max=1.0))  # changed quat convention
-
 
 @torch.jit.script
 def compute_rewards(

@@ -71,6 +71,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     env_cfg.randomize_pd_gains = False
     env_cfg.randomize_friction = False
     env_cfg.randomize_com = False
+    env_cfg.sim.gravity = (0, 0, -9.81)
     env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
 

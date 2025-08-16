@@ -118,7 +118,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*_DP",
         history_length=3,
-        force_threshold=0.01
+        force_threshold=0.01,
     )
 
     actuated_joint_names = [

@@ -6,61 +6,13 @@
 import math
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
-from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.managers import SceneEntityCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
-
-
-@configclass
-class EventCfg:
-    """Configuration for randomization."""
-
-    randomize_object_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (0.01, 0.25),
-            "operation": "scale",
-        },
-    )
-
-    # reset_gravity = EventTerm(
-    #     func=mdp.randomize_physics_scene_gravity,
-    #     mode="interval",
-    #     is_global_time=True,
-    #     interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
-    #     params={
-    #         "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
-    #         "operation": "add",
-    #         "distribution": "gaussian",
-    #     },
-    # )
-
-    # randomize_object_com = EventTerm(
-    #     func=mdp.randomize_rigid_body_com,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "com_range": {"x": (-0.01, 0.01), "y": (-0.01, 0.01), "z": (-0.01, 0.01)},
-    #     },
-    # )
-
-    # randomize_object_scale = EventTerm(
-    #     func=mdp.randomize_rigid_body_scale,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("object"),
-    #         "scale_range": {"x": (0.75, 0.75), "y": (0.75, 0.75), "z": (0.75, 0.75)},
-    #     }
-    # )
 
 
 @configclass
@@ -85,7 +37,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
         render_interval=2,
-        gravity=(0.0, 0.0, -0.05),
+        gravity=(0.0, 0.0, -9.81),
         physx=PhysxCfg(
             solver_type=1,
             max_position_iteration_count=8,
@@ -221,15 +173,13 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 contact_offset=0.002, 
                 rest_offset=0.0
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.75, 0.75, 0.75),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.003, 0.054, 0.635), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
-    # events
-    events: EventCfg = EventCfg()
     # reset
     reset_height_lower = 0.615
     reset_height_upper = 0.655
@@ -272,6 +222,9 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_com = True
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01
+    randomize_mass = True
+    randomize_mass_lower = 0.01
+    randomize_mass_upper = 0.25
     # random forces applied to the object
     force_scale = 2
     random_force_prob_scalar = 0.25

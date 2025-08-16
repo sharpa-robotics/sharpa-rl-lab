@@ -96,7 +96,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             rand_com = torch.empty([self.num_envs, 3]).uniform_(self.cfg.randomize_com_lower, self.cfg.randomize_com_upper)
             self.set_com(self.object, rand_com, self.num_envs)
             self.priv_info_buf[:, 5:8] = self.object.root_physx_view.get_coms().reshape(self.num_envs, -1)[:, :3]
-        self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
+        if self.cfg.randomize_mass:
+            rand_mass = torch.empty(self.num_envs).uniform_(self.cfg.randomize_mass_lower, self.cfg.randomize_mass_upper)
+            self.set_mass(self.object, rand_mass, self.num_envs)
+            self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
 
     def _setup_scene(self):
         # add hand, in-hand object, and goal object
@@ -328,6 +331,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         coms[:, :3] += value
         env_ids = torch.arange(num_envs, device="cpu")
         asset.root_physx_view.set_coms(coms, env_ids)
+
+    def set_mass(self, asset, value, num_envs):
+        env_ids = torch.arange(num_envs, device="cpu")
+        asset.root_physx_view.set_masses(value, env_ids)
     
     def _setup_reward_config(self):
         self.rot_axis = torch.tensor(self.cfg.rot_axis).repeat(self.num_envs, 1).to(self.device)

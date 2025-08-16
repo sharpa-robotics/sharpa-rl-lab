@@ -32,17 +32,17 @@ class EventCfg:
         },
     )
 
-    reset_gravity = EventTerm(
-        func=mdp.randomize_physics_scene_gravity,
-        mode="interval",
-        is_global_time=True,
-        interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
-        params={
-            "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
-            "operation": "add",
-            "distribution": "gaussian",
-        },
-    )
+    # reset_gravity = EventTerm(
+    #     func=mdp.randomize_physics_scene_gravity,
+    #     mode="interval",
+    #     is_global_time=True,
+    #     interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
+    #     params={
+    #         "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
+    #         "operation": "add",
+    #         "distribution": "gaussian",
+    #     },
+    # )
 
     # randomize_object_com = EventTerm(
     #     func=mdp.randomize_rigid_body_com,
@@ -233,6 +233,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # reset
     reset_height_lower = 0.615
     reset_height_upper = 0.655
+    reset_angle_diff = 10/180*3.14
     # reward
     # primary reward
     rot_axis = (0, 0, 1)

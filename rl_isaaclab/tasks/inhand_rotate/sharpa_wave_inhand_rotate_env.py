@@ -197,6 +197,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
         height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
+        torch.greater(quat_to_rot(quat_mul(self.object_rot, quat_conjugate(self.object.data.default_root_state.clone()[:, 3:7]))), self.cfg.reset_angle_diff)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         return height_reset, time_out
 
@@ -372,3 +373,9 @@ def compute_rewards(
     reward += angle_diff * rot_diff_reward_scale
     reward += object_pos_diff * object_pos_reward_scale
     return reward
+
+@torch.jit.script
+def quat_to_rot(quaternion: torch.Tensor):
+    quaternion = quaternion / torch.norm(quaternion, dim=-1, keepdim=True)
+    angle = 2 * torch.acos(quaternion[:, 0])
+    return angle

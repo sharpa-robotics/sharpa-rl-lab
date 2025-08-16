@@ -41,7 +41,7 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         self.saved_grasping_states = torch.cat([self.saved_grasping_states, all_states[env_ids][success]])
         print('current cache size:', self.saved_grasping_states.shape[0])
         if len(self.saved_grasping_states) >= 5e4:
-            name = f'cache/sharpa_grasp_50k_{time.perf_counter()}.npy'
+            name = f'cache/sharpa_grasp_50k_{time.strftime("%Y%m%d%H%M%S")}.npy'
             np.save(name, self.saved_grasping_states[:50000].cpu().numpy())
             exit()
 

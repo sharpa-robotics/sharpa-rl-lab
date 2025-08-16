@@ -6,11 +6,8 @@
 import math
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
-from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.managers import SceneEntityCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
@@ -21,7 +18,7 @@ from isaaclab.utils import configclass
 @configclass
 class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 20.0
+    episode_length_s = 12
     action_space = 22
     observation_space = 147
     prop_hist_len = 30

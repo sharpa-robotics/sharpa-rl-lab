@@ -71,6 +71,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     env_cfg.randomize_pd_gains = False
     env_cfg.randomize_friction = False
     env_cfg.randomize_com = False
+    env_cfg.randomize_mass = False
     env_cfg.sim.gravity = (0, 0, -9.81)
     env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
@@ -91,7 +92,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     resume_path = agent_cfg["load_path"]
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
-    agent.restore_test(config.train.load_path)
+    agent.restore_test(resume_path)
     agent.test()
 
     # close the simulator

@@ -91,10 +91,8 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     resume_path = agent_cfg["load_path"]
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
-    agent.restore_train(resume_path)
-
-    # run training
-    agent.train()
+    agent.restore_test(config.train.load_path)
+    agent.test()
 
     # close the simulator
     env.close()

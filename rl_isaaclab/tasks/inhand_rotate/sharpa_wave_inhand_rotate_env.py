@@ -339,8 +339,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _setup_reward_config(self):
         self.rot_axis = torch.tensor(self.cfg.rot_axis).repeat(self.num_envs, 1).to(self.device)
 
-    def _joint_idx_gym2lab(self, pos):
-        return pos[:, [0, 4, 8, 13, 17, 1, 5, 9, 14, 18, 2, 6, 10, 15, 19, 3, 7, 11, 16, 20, 12, 21]]
 
 @torch.jit.script
 def scale(x, lower, upper):

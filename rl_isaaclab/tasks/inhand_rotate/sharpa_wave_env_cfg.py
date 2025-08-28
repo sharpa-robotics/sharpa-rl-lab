@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha3/wo_hand_base.usd",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/ha4.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -78,6 +78,11 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             pos=(0.0, 0.0, 0.5),
             rot=(0.9063078, -0.4226183, 0, 0),
             joint_pos={
+                "thumb_CMC_FE": 1.918,
+                "thumb_CMC_AA": -0.3489,
+                "thumb_MCP_FE": 0.1484,
+                "thumb_MCP_AA": -0.1745,
+                "thumb_IP": 0.4835,
                 "index_MCP_FE": 0.7191, 
                 "index_MCP_AA": -0.1676,
                 "index_PIP": 0.3840,
@@ -86,20 +91,15 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 "middle_MCP_AA": -0.0349,
                 "middle_PIP": 0.8203,
                 "middle_DIP": 0.3630,
+                "ring_MCP_FE": 0.1937,
+                "ring_MCP_AA": 0.1745,
+                "ring_PIP": 0.7994,
+                "ring_DIP": 0.3316,
                 "pinky_CMC": 0.0,
                 "pinky_MCP_FE": 0.6109,
                 "pinky_MCP_AA": 0.2217,
                 "pinky_PIP": 0.5585,
                 "pinky_DIP": 0.6458,
-                "ring_MCP_FE": 0.1937,
-                "ring_MCP_AA": 0.1745,
-                "ring_PIP": 0.7994,
-                "ring_DIP": 0.3316,
-                "thumb_CMC_FE": 1.918,
-                "thumb_CMC_AA": -0.3489,
-                "thumb_MCP_FE": 0.1484,
-                "thumb_MCP_AA": -0.1745,
-                "thumb_IP": 0.4835
             },
         ),
         actuators={
@@ -122,6 +122,11 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     )
 
     actuated_joint_names = [
+        "thumb_CMC_FE",
+        "thumb_CMC_AA",
+        "thumb_MCP_FE",
+        "thumb_MCP_AA",
+        "thumb_IP",
         "index_MCP_FE",
         "index_MCP_AA",
         "index_PIP",
@@ -130,27 +135,22 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         "middle_MCP_AA",
         "middle_PIP",
         "middle_DIP",
+        "ring_MCP_FE",
+        "ring_MCP_AA",
+        "ring_PIP",
+        "ring_DIP",
         "pinky_CMC",
         "pinky_MCP_FE",
         "pinky_MCP_AA",
         "pinky_PIP",
         "pinky_DIP",
-        "ring_MCP_FE",
-        "ring_MCP_AA",
-        "ring_PIP",
-        "ring_DIP",
-        "thumb_CMC_FE",
-        "thumb_CMC_AA",
-        "thumb_MCP_FE",
-        "thumb_MCP_AA",
-        "thumb_IP",
     ]
     fingertip_body_names = [
+        "thumb_DP",
         "index_DP",
         "middle_DP",
-        "pinky_DP",
         "ring_DP",
-        "thumb_DP",
+        "pinky_DP",
     ]
 
     # in-hand object

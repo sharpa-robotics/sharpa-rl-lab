@@ -30,7 +30,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24
-    torque_control = True
+    torque_control = False
     pgain = 60
     dgain = 4
     # simulation
@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/ha4.usd",
+            usd_path=f"assets/sharpa_ha4/Collected_ha4/ha4.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -62,7 +62,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 max_contact_impulse=1e32,
             ),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                enabled_self_collisions=True,
+                enabled_self_collisions=False,
                 solver_position_iteration_count=8,
                 solver_velocity_iteration_count=0,
                 sleep_threshold=0.005,
@@ -76,38 +76,38 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.5),
-            rot=(0.9063078, -0.4226183, 0, 0),
+            rot=(0.6408564, -0.2988362, -0.2988362, -0.6408564),
             joint_pos={
-                "thumb_CMC_FE": 1.918,
-                "thumb_CMC_AA": -0.3489,
-                "thumb_MCP_FE": 0.1484,
-                "thumb_MCP_AA": -0.1745,
-                "thumb_IP": 0.4835,
-                "index_MCP_FE": 0.7191, 
-                "index_MCP_AA": -0.1676,
-                "index_PIP": 0.3840,
-                "index_DIP": 0.7505,
-                "middle_MCP_FE": 0.1623,
-                "middle_MCP_AA": -0.0349,
-                "middle_PIP": 0.8203,
-                "middle_DIP": 0.3630,
-                "ring_MCP_FE": 0.1937,
-                "ring_MCP_AA": 0.1745,
-                "ring_PIP": 0.7994,
-                "ring_DIP": 0.3316,
-                "pinky_CMC": 0.0,
-                "pinky_MCP_FE": 0.6109,
-                "pinky_MCP_AA": 0.2217,
-                "pinky_PIP": 0.5585,
-                "pinky_DIP": 0.6458,
+                "right_thumb_CMC_FE": math.pi/180 * 109.98,
+                "right_thumb_CMC_AA": math.pi/180 * -3.0,
+                "right_thumb_MCP_FE": math.pi/180 * -6.4,
+                "right_thumb_MCP_AA": math.pi/180 * 16.4,
+                "right_thumb_IP": math.pi/180 * 28.0,
+                "right_index_MCP_FE": math.pi/180 * 31.3, 
+                "right_index_MCP_AA": math.pi/180 * -8.1,
+                "right_index_PIP": math.pi/180 * 47.7,
+                "right_index_DIP": math.pi/180 * 57.8,
+                "right_middle_MCP_FE": math.pi/180 * 5.2,
+                "right_middle_MCP_AA": math.pi/180 * -11.7,
+                "right_middle_PIP": math.pi/180 * 58.1,
+                "right_middle_DIP": math.pi/180 * 51.7,
+                "right_ring_MCP_FE": math.pi/180 * 4.2,
+                "right_ring_MCP_AA": math.pi/180 * 0.0,
+                "right_ring_PIP": math.pi/180 * 49.8,
+                "right_ring_DIP": math.pi/180 * 54.5,
+                "right_pinky_CMC": math.pi/180 * 0.0,
+                "right_pinky_MCP_FE": math.pi/180 * 28.9,
+                "right_pinky_MCP_AA": math.pi/180 * 2.3,
+                "right_pinky_PIP": math.pi/180 * 42.9,
+                "right_pinky_DIP": math.pi/180 * 52.3,
             },
         ),
         actuators={
             "fingers": ImplicitActuatorCfg(
                 joint_names_expr=[".*"],
-                effort_limit_sim=0.5,
-                stiffness=0.0,
-                damping=0.0,
+                effort_limit_sim=20.0,
+                stiffness=60.0,
+                damping=4.0,
                 friction=0.1,
                 armature=0.1,
             ),
@@ -116,42 +116,42 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     )
 
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/.*_DP",
+        prim_path="/World/envs/env_.*/Robot/.*_elastomer",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     actuated_joint_names = [
-        "thumb_CMC_FE",
-        "thumb_CMC_AA",
-        "thumb_MCP_FE",
-        "thumb_MCP_AA",
-        "thumb_IP",
-        "index_MCP_FE",
-        "index_MCP_AA",
-        "index_PIP",
-        "index_DIP",
-        "middle_MCP_FE",
-        "middle_MCP_AA",
-        "middle_PIP",
-        "middle_DIP",
-        "ring_MCP_FE",
-        "ring_MCP_AA",
-        "ring_PIP",
-        "ring_DIP",
-        "pinky_CMC",
-        "pinky_MCP_FE",
-        "pinky_MCP_AA",
-        "pinky_PIP",
-        "pinky_DIP",
+        "right_thumb_CMC_FE",
+        "right_thumb_CMC_AA",
+        "right_thumb_MCP_FE",
+        "right_thumb_MCP_AA",
+        "right_thumb_IP",
+        "right_index_MCP_FE",
+        "right_index_MCP_AA",
+        "right_index_PIP",
+        "right_index_DIP",
+        "right_middle_MCP_FE",
+        "right_middle_MCP_AA",
+        "right_middle_PIP",
+        "right_middle_DIP",
+        "right_ring_MCP_FE",
+        "right_ring_MCP_AA",
+        "right_ring_PIP",
+        "right_ring_DIP",
+        "right_pinky_CMC",
+        "right_pinky_MCP_FE",
+        "right_pinky_MCP_AA",
+        "right_pinky_PIP",
+        "right_pinky_DIP",
     ]
     fingertip_body_names = [
-        "thumb_DP",
-        "index_DP",
-        "middle_DP",
-        "ring_DP",
-        "pinky_DP",
+        "right_thumb_fingertip",
+        "right_index_fingertip",
+        "right_middle_fingertip",
+        "right_ring_fingertip",
+        "right_pinky_fingertip",
     ]
 
     # in-hand object

@@ -82,8 +82,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._setup_reward_config()
 
         # contact buffers
-        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_DP")
-        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["index_DP", "pinky_DP"])
+        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_elastomer")
+        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["right_index_elastomer", "right_pinky_elastomer"])
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
 
         # randomize

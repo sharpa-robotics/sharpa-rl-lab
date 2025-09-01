@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import isaaclab.sim as sim_utils
+import omni.physics.tensors.impl.api as physx
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
@@ -100,6 +101,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             rand_mass = torch.empty(self.num_envs).uniform_(self.cfg.randomize_mass_lower, self.cfg.randomize_mass_upper)
             self.set_mass(self.object, rand_mass, self.num_envs)
             self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
+
+        # physics_sim_view
+        self.physics_sim_view: physx.SimulationView = sim_utils.SimulationContext.instance().physics_sim_view
 
     def _setup_scene(self):
         # add hand, in-hand object, and goal object
@@ -193,6 +197,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['yaw'] = self.object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
         self.extras['angle_diff_reward'] = angle_diff.mean()
+        self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
+        self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
+        self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:

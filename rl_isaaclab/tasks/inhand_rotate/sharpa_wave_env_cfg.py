@@ -216,7 +216,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_diff_clip_min = -0.025
     rot_diff_clip_max = 0.025
     rot_diff_reward_scale = 5.0
-    object_pos_reward_scale = 0.001
+    object_pos_reward_scale = 0.003
     # rot_diff_reward_scale = 0.0
     # object_pos_reward_scale = 0.0
     # grasp cache

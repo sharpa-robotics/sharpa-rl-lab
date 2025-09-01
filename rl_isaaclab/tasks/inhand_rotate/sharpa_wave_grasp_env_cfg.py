@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_ha4/ha4.usd",
+            usd_path=f"assets/sharpa_ha4/Collected_ha4/ha4_wo_hand_base.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -119,7 +119,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/Robot/.*_elastomer",
         history_length=3,
         force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        filter_prim_paths_expr=["/World/envs/env_.*/object"], # 需要每个关节单独设置contact_sensor, filter才能生效
     )
 
     actuated_joint_names = [
@@ -184,7 +184,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # reset
     reset_height_lower = 0.63
     reset_height_upper = 0.64
-    reset_angle_diff = 0.05
+    reset_angle_diff = 0.2
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None

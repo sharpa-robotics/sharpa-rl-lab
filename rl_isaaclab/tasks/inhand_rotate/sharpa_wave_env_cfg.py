@@ -6,13 +6,29 @@
 import math
 
 import isaaclab.sim as sim_utils
+import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
+from isaaclab.managers import EventTermCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
+
+
+class EventCfg:
+    reset_gravity = EventTermCfg(
+        func=mdp.randomize_physics_scene_gravity,
+        mode="interval",
+        is_global_time=True,
+        interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
+        params={
+            "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
+            "operation": "add",
+            "distribution": "gaussian",
+        },
+    )
 
 
 @configclass
@@ -37,7 +53,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
         render_interval=2,
-        gravity=(0.0, 0.0, -9.81),
+        gravity=(0.0, 0.0, -0.05),
         physx=PhysxCfg(
             solver_type=1,
             max_position_iteration_count=8,
@@ -51,7 +67,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_ha4/ha4.usd",
+            usd_path=f"assets/sharpa_ha4/Collected_ha4/ha4_wo_hand_base.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -180,10 +196,12 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
+    # events
+    events: EventCfg = EventCfg()
     # reset
     reset_height_lower = 0.615
     reset_height_upper = 0.655
-    reset_angle_diff = 10/180*3.14
+    reset_angle_diff = 10/180*3.14 * 10
     # reward
     # primary reward
     rot_axis = (0, 0, 1)
@@ -202,7 +220,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # rot_diff_reward_scale = 0.0
     # object_pos_reward_scale = 0.0
     # grasp cache
-    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_grasp_50k_111909.194835222.npy'
+    grasp_cache_path = '/home/renrenyuan/sharpa_tac_rl/cache/sharpa_grasp_50k_20250901114511.npy'
     # noise
     joint_noise_scale = 0.02
     # contact

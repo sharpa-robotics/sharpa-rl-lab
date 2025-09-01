@@ -92,30 +92,30 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.5),
-            rot=(0.9063, 0, -0.4226, 0),
+            rot=(0.6408564, -0.2988362, -0.2988362, -0.6408564),
             joint_pos={
-                "right_thumb_CMC_FE": 1.2672,
-                "right_thumb_CMC_AA": -0.2287,
-                "right_thumb_MCP_FE": 0.1641,
-                "right_thumb_MCP_AA": -0.0873,
-                "right_thumb_IP": 0.7680,
-                "right_index_MCP_FE": 0.8185,
-                "right_index_MCP_AA": -0.1850,
-                "right_index_PIP": 0.5760,
-                "right_index_DIP": 0.7087,
-                "right_middle_MCP_FE": 0.3858,
-                "right_middle_MCP_AA": -0.0209,
-                "right_middle_PIP": 0.8151,
-                "right_middle_DIP": 0.3439,
-                "right_ring_MCP_FE": 0.4049,
-                "right_ring_MCP_AA": 0.0785,
-                "right_ring_PIP": 0.7226,
-                "right_ring_DIP": 0.2810,
-                "right_pinky_CMC": 0.1885,
-                "right_pinky_MCP_FE": 0.4451,
-                "right_pinky_MCP_AA": 0.3316,
-                "right_pinky_PIP": 0.9147,
-                "right_pinky_DIP": 0.5882,
+                "right_thumb_CMC_FE": math.pi/180 * 109.98,
+                "right_thumb_CMC_AA": math.pi/180 * -3.0,
+                "right_thumb_MCP_FE": math.pi/180 * -6.4,
+                "right_thumb_MCP_AA": math.pi/180 * 16.4,
+                "right_thumb_IP": math.pi/180 * 28.0,
+                "right_index_MCP_FE": math.pi/180 * 31.3, 
+                "right_index_MCP_AA": math.pi/180 * -8.1,
+                "right_index_PIP": math.pi/180 * 47.7,
+                "right_index_DIP": math.pi/180 * 57.8,
+                "right_middle_MCP_FE": math.pi/180 * 5.2,
+                "right_middle_MCP_AA": math.pi/180 * -11.7,
+                "right_middle_PIP": math.pi/180 * 58.1,
+                "right_middle_DIP": math.pi/180 * 51.7,
+                "right_ring_MCP_FE": math.pi/180 * 4.2,
+                "right_ring_MCP_AA": math.pi/180 * 0.0,
+                "right_ring_PIP": math.pi/180 * 49.8,
+                "right_ring_DIP": math.pi/180 * 54.5,
+                "right_pinky_CMC": math.pi/180 * 0.0,
+                "right_pinky_MCP_FE": math.pi/180 * 28.9,
+                "right_pinky_MCP_AA": math.pi/180 * 2.3,
+                "right_pinky_PIP": math.pi/180 * 42.9,
+                "right_pinky_DIP": math.pi/180 * 52.3,
             },
         ),
         actuators={
@@ -192,7 +192,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.75, 0.75, 0.75),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.032, 0.0, 0.65), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.003, 0.054, 0.635), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
@@ -209,7 +209,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_max = 0.5
     rotate_reward_scale = 1.5
     object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.4
+    pos_diff_penalty_scale = -0.5
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward
@@ -220,7 +220,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # rot_diff_reward_scale = 0.0
     # object_pos_reward_scale = 0.0
     # grasp cache
-    grasp_cache_path = 'cache/sharpa_grasp_50k_20250901105349_msp.npy'
+    grasp_cache_path = 'cache/sharpa_grasp_50k_20250901114511.npy'
     # noise
     joint_noise_scale = 0.02
     # contact

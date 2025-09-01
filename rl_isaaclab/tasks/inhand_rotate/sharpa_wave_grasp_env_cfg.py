@@ -184,7 +184,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # reset
     reset_height_lower = 0.63
     reset_height_upper = 0.64
-    reset_angle_diff = 0.2
+    reset_angle_diff = 0.1
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None

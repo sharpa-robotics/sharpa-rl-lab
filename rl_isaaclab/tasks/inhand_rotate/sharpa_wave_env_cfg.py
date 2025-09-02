@@ -267,17 +267,17 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_min = -0.5
     angvel_clip_max = 0.5
     rotate_reward_scale = 1.5
-    object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.3
+    object_linvel_penalty_scale = -0.2
+    pos_diff_penalty_scale = -0.2
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward
     rot_diff_clip_min = -0.025
     rot_diff_clip_max = 0.025
     rot_diff_reward_scale = 5.0
-    object_pos_reward_scale = 0.001
+    # object_pos_reward_scale = 0.001
     # rot_diff_reward_scale = 0.0
-    # object_pos_reward_scale = 0.0
+    object_pos_reward_scale = 0.0
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_50k_newest.npy'
     # noise

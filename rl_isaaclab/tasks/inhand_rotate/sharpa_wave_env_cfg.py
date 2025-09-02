@@ -67,7 +67,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/ha4_usda_test/right_sharpa_ha4_overlay.usda",
+            usd_path=f"assets/sharpa_ha4/Collected_ha4_half_simplify/ha4_half_simplify.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -131,40 +131,70 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         soft_joint_pos_limit_factor=1.0,
     )
 
-    contact_sensor_thumb: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_thumb_DP/right_thumb_elastomer",
-        history_length=3,
-        force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
-    )
-
-    contact_sensor_index: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_index_DP/right_index_elastomer",
-        history_length=3,
-        force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
-    )
-
-    contact_sensor_middle: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_middle_DP/right_middle_elastomer",
-        history_length=3,
-        force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
-    )
-
-    contact_sensor_ring: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_ring_DP/right_ring_elastomer",
-        history_length=3,
-        force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
-    )
-
-    contact_sensor_pinky: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_pinky_DP/right_pinky_elastomer",
-        history_length=3,
-        force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"],
-    )
+    contact_sensor = [
+        # elastomer
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_thumb_elastomer",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_index_elastomer",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_middle_elastomer",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_ring_elastomer",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_pinky_elastomer",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        # DP
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_thumb_DP",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_index_DP",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_middle_DP",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_ring_DP",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        ),
+        ContactSensorCfg(
+            prim_path="/World/envs/env_.*/Robot/right_pinky_DP",
+            history_length=3,
+            force_threshold=0.001,
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+        )
+    ]
 
     actuated_joint_names = [
         "right_thumb_CMC_FE",

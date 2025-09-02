@@ -116,35 +116,35 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     )
 
     contact_sensor_thumb: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_thumb_DP/right_thumb_elastomer",
+        prim_path="/World/envs/env_.*/Robot/right_thumb_DP",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     contact_sensor_index: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_index_DP/right_index_elastomer",
+        prim_path="/World/envs/env_.*/Robot/right_index_DP",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     contact_sensor_middle: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_middle_DP/right_middle_elastomer",
+        prim_path="/World/envs/env_.*/Robot/right_middle_DP",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     contact_sensor_ring: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_ring_DP/right_ring_elastomer",
+        prim_path="/World/envs/env_.*/Robot/right_ring_DP",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     contact_sensor_pinky: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/right_pinky_DP/right_pinky_elastomer",
+        prim_path="/World/envs/env_.*/Robot/right_pinky_DP",
         history_length=3,
         force_threshold=0.01,
         filter_prim_paths_expr=["/World/envs/env_.*/object"],

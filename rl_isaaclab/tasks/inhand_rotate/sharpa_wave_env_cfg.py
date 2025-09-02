@@ -100,7 +100,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 "right_thumb_MCP_AA": math.pi/180 * -0.6,
                 "right_thumb_IP": math.pi/180 * 22.5,
                 "right_index_MCP_FE": math.pi/180 * 45.3, 
-                "right_index_MCP_AA": math.pi/180 * -4.5,
+                "right_index_MCP_AA": math.pi/180 * -3.0,
                 "right_index_PIP": math.pi/180 * 39.1,
                 "right_index_DIP": math.pi/180 * 22.4,
                 "right_middle_MCP_FE": math.pi/180 * 29.4,
@@ -113,7 +113,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 "right_ring_DIP": math.pi/180 * 17.4,
                 "right_pinky_CMC": math.pi/180 * 0.0,
                 "right_pinky_MCP_FE": math.pi/180 * 48.4,
-                "right_pinky_MCP_AA": math.pi/180 * 2.8,
+                "right_pinky_MCP_AA": math.pi/180 * 1.3,
                 "right_pinky_PIP": math.pi/180 * 19.7,
                 "right_pinky_DIP": math.pi/180 * 18.0,
             },
@@ -251,16 +251,16 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.75, 0.75, 0.75),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.66), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
     # events
     events: EventCfg = EventCfg()
     # reset
-    reset_height_lower = 0.615
-    reset_height_upper = 0.655
-    reset_angle_diff = 10/180*3.14 * 10
+    reset_height_lower = 0.63
+    reset_height_upper = 0.67
+    reset_angle_diff = 10/180*3.14
     # reward
     # primary reward
     rot_axis = (0, 0, 1)
@@ -279,7 +279,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # rot_diff_reward_scale = 0.0
     # object_pos_reward_scale = 0.0
     # grasp cache
-    grasp_cache_path = 'cache/sharpa_grasp_50k_20250901202933.npy'
+    grasp_cache_path = 'cache/sharpa_grasp_50k_20250902171717.npy'
     # noise
     joint_noise_scale = 0.02
     # contact

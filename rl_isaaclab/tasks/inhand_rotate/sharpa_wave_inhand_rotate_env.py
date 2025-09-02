@@ -83,8 +83,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._setup_reward_config()
 
         # contact buffers
-        self._contact_body_ids, _ = self._contact_sensor.find_bodies(".*_elastomer")
-        self._contact_body_ids_disable, _ = self._contact_sensor.find_bodies(["right_index_elastomer", "right_pinky_elastomer"])
+        self._contact_body_ids = torch.tensor([0, 2, 3], dtype=torch.long)
+        self._contact_body_ids_disable = torch.tensor([1, 4], dtype=torch.long)
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
 
         # randomize
@@ -117,8 +117,17 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.scene.articulations["robot"] = self.hand
         self.scene.rigid_objects["object"] = self.object
         # contact sensors
-        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
-        self.scene.sensors["contact_sensor"] = self._contact_sensor
+        self._contact_sensor = []
+        self._contact_sensor.append(ContactSensor(self.cfg.contact_sensor_thumb))
+        self._contact_sensor.append(ContactSensor(self.cfg.contact_sensor_index))
+        self._contact_sensor.append(ContactSensor(self.cfg.contact_sensor_middle))
+        self._contact_sensor.append(ContactSensor(self.cfg.contact_sensor_ring))
+        self._contact_sensor.append(ContactSensor(self.cfg.contact_sensor_pinky))
+        self.scene.sensors["contact_sensor_thumb"] = self._contact_sensor[0]
+        self.scene.sensors["contact_sensor_index"] = self._contact_sensor[1]
+        self.scene.sensors["contact_sensor_middle"] = self._contact_sensor[2]
+        self.scene.sensors["contact_sensor_ring"] = self._contact_sensor[3]
+        self.scene.sensors["contact_sensor_pinky"] = self._contact_sensor[4]
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
@@ -286,7 +295,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
     def compute_observations(self):
         # contact
-        net_contact_forces_history = self._contact_sensor.data.net_forces_w_history[:, :, self._contact_body_ids, :]
+        net_contact_forces_history = torch.cat([
+            self._contact_sensor[0].data.net_forces_w_history[:, :, 0, :].unsqueeze(2),
+            self._contact_sensor[1].data.net_forces_w_history[:, :, 0, :].unsqueeze(2),
+            self._contact_sensor[2].data.net_forces_w_history[:, :, 0, :].unsqueeze(2),
+            self._contact_sensor[3].data.net_forces_w_history[:, :, 0, :].unsqueeze(2),
+            self._contact_sensor[4].data.net_forces_w_history[:, :, 0, :].unsqueeze(2),
+        ], dim=2)
         norm_contact_forces_history = torch.norm(net_contact_forces_history, dim=-1)
         smooth_contact_forces = norm_contact_forces_history[:, 0, :] * self.cfg.contact_smooth + norm_contact_forces_history[:, 1, :] * (1 - self.cfg.contact_smooth)
         binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)

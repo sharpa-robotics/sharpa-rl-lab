@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_HA4_merged_filteredpairs/right_sharpa_ha4_merged_v2_1.usd",
+            usd_path=f"assets/sharpa_ha4/ha4_usda_test/right_sharpa_ha4_overlay.usda",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -76,30 +76,30 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.5),
-            rot=(0.6408564, -0.2988362, -0.2988362, -0.6408564),
+            rot=(0.8660254, 0.0, -0.5, 0.0),
             joint_pos={
-                "right_thumb_CMC_FE": math.pi/180 * 109.98,
-                "right_thumb_CMC_AA": math.pi/180 * -3.0,
-                "right_thumb_MCP_FE": math.pi/180 * -6.4,
-                "right_thumb_MCP_AA": math.pi/180 * 16.4,
-                "right_thumb_IP": math.pi/180 * 28.0,
-                "right_index_MCP_FE": math.pi/180 * 31.3, 
-                "right_index_MCP_AA": math.pi/180 * -8.1,
-                "right_index_PIP": math.pi/180 * 47.7,
-                "right_index_DIP": math.pi/180 * 57.8,
-                "right_middle_MCP_FE": math.pi/180 * 5.2,
-                "right_middle_MCP_AA": math.pi/180 * -11.7,
-                "right_middle_PIP": math.pi/180 * 58.1,
-                "right_middle_DIP": math.pi/180 * 51.7,
-                "right_ring_MCP_FE": math.pi/180 * 4.2,
-                "right_ring_MCP_AA": math.pi/180 * 0.0,
-                "right_ring_PIP": math.pi/180 * 49.8,
-                "right_ring_DIP": math.pi/180 * 54.5,
+                "right_thumb_CMC_FE": math.pi/180 * 100.0,
+                "right_thumb_CMC_AA": math.pi/180 * 3.0,
+                "right_thumb_MCP_FE": math.pi/180 * -17.9,
+                "right_thumb_MCP_AA": math.pi/180 * -0.6,
+                "right_thumb_IP": math.pi/180 * 22.5,
+                "right_index_MCP_FE": math.pi/180 * 45.3, 
+                "right_index_MCP_AA": math.pi/180 * -4.5,
+                "right_index_PIP": math.pi/180 * 39.1,
+                "right_index_DIP": math.pi/180 * 22.4,
+                "right_middle_MCP_FE": math.pi/180 * 29.4,
+                "right_middle_MCP_AA": math.pi/180 * -3.3,
+                "right_middle_PIP": math.pi/180 * 39.1,
+                "right_middle_DIP": math.pi/180 * 12.7,
+                "right_ring_MCP_FE": math.pi/180 * 27.0,
+                "right_ring_MCP_AA": math.pi/180 * 0.7,
+                "right_ring_PIP": math.pi/180 * 30.8,
+                "right_ring_DIP": math.pi/180 * 17.4,
                 "right_pinky_CMC": math.pi/180 * 0.0,
-                "right_pinky_MCP_FE": math.pi/180 * 28.9,
-                "right_pinky_MCP_AA": math.pi/180 * 2.3,
-                "right_pinky_PIP": math.pi/180 * 42.9,
-                "right_pinky_DIP": math.pi/180 * 52.3,
+                "right_pinky_MCP_FE": math.pi/180 * 48.4,
+                "right_pinky_MCP_AA": math.pi/180 * 2.8,
+                "right_pinky_PIP": math.pi/180 * 19.7,
+                "right_pinky_DIP": math.pi/180 * 18.0,
             },
         ),
         actuators={
@@ -115,11 +115,39 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         soft_joint_pos_limit_factor=1.0,
     )
 
-    contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/.*_elastomer",
+    contact_sensor_thumb: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/right_thumb_DP/right_thumb_elastomer",
         history_length=3,
         force_threshold=0.01,
-        filter_prim_paths_expr=["/World/envs/env_.*/object"], # 需要每个关节单独设置contact_sensor, filter才能生效
+        filter_prim_paths_expr=["/World/envs/env_.*/object"],
+    )
+
+    contact_sensor_index: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/right_index_DP/right_index_elastomer",
+        history_length=3,
+        force_threshold=0.01,
+        filter_prim_paths_expr=["/World/envs/env_.*/object"],
+    )
+
+    contact_sensor_middle: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/right_middle_DP/right_middle_elastomer",
+        history_length=3,
+        force_threshold=0.01,
+        filter_prim_paths_expr=["/World/envs/env_.*/object"],
+    )
+
+    contact_sensor_ring: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/right_ring_DP/right_ring_elastomer",
+        history_length=3,
+        force_threshold=0.01,
+        filter_prim_paths_expr=["/World/envs/env_.*/object"],
+    )
+
+    contact_sensor_pinky: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/right_pinky_DP/right_pinky_elastomer",
+        history_length=3,
+        force_threshold=0.01,
+        filter_prim_paths_expr=["/World/envs/env_.*/object"],
     )
 
     actuated_joint_names = [
@@ -177,14 +205,14 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.75, 0.75, 0.75),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.003, 0.054, 0.635), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
     # reset
-    reset_height_lower = 0.63
-    reset_height_upper = 0.64
-    reset_angle_diff = 0.1
+    reset_height_lower = 0.635
+    reset_height_upper = 0.645
+    reset_angle_diff = 0.05
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None

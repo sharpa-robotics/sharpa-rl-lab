@@ -11,8 +11,6 @@ import torch
 from collections.abc import Sequence
 
 import carb
-import isaaclab.sim as sim_utils
-import omni.physics.tensors.impl.api as physx
 from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
 
 from .sharpa_wave_grasp_env_cfg import SharpaWaveEnvCfg

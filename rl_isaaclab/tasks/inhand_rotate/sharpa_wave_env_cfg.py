@@ -251,16 +251,16 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.6, 0.6, 0.6),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.65), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
     # events
     events: EventCfg = EventCfg()
     # reset
-    reset_height_lower = 0.63
-    reset_height_upper = 0.67
-    reset_angle_diff = 30/180*3.14
+    reset_height_lower = 0.62
+    reset_height_upper = 0.66
+    reset_angle_diff = 30 / 180 * math.pi
     # reward
     # primary reward
     rot_axis = (0, 0, 1)

@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_ha4_sim_4_2_filteredpairs/ha4_sim_4_2.usd",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/Collected_ha4_sim_4_2/ha4_sim_4_2.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -235,14 +235,14 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(0.6, 0.6, 0.6),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.65), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
     # reset
-    reset_height_lower = 0.645
-    reset_height_upper = 0.655
-    reset_angle_diff = 0.05
+    reset_height_lower = 0.635
+    reset_height_upper = 0.645
+    reset_angle_diff = 10 / 180 * math.pi
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None

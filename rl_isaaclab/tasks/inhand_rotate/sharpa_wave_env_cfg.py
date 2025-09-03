@@ -22,9 +22,9 @@ class EventCfg:
         func=mdp.randomize_physics_scene_gravity,
         mode="interval",
         is_global_time=True,
-        interval_range_s=(1000.0, 1000.0),  # time_s = num_steps * (decimation * dt)
+        interval_range_s=(75.0, 75.0),  # time_s = num_steps * (decimation * dt)
         params={
-            "gravity_distribution_params": ([0.0, 0.0, -0.01], [0.0, 0.0, 0.0]),
+            "gravity_distribution_params": ([0.0, 0.0, -0.05], [0.0, 0.0, 0.0]),
             "operation": "add",
             "distribution": "gaussian",
         },
@@ -67,7 +67,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_ha4_sim_4_2_filteredpairs/ha4_sim_4_2.usd",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/Collected_ha4_sim_4_2/ha4_sim_4_2.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,

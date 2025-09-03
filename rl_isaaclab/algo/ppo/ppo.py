@@ -172,13 +172,6 @@ class PPO(object):
             all_fps = self.agent_steps / (time.time() - _t)
             last_fps = self.batch_size / (time.time() - _last_t)
             _last_t = time.time()
-            info_string = f'Agent Steps: {int(self.agent_steps // 1e6):04}M | FPS: {all_fps:.1f} | ' \
-                          f'Last FPS: {last_fps:.1f} | ' \
-                          f'Collect Time: {self.data_collect_time / 60:.1f} min | ' \
-                          f'Train RL Time: {self.rl_train_time / 60:.1f} min | ' \
-                          f'Mean Rewards: {mean_rewards} | ' \
-                          f'Current Best: {self.best_rewards:.2f}'
-            print(info_string)
 
             self.write_stats(a_losses, c_losses, b_losses, entropies, kls)
 
@@ -197,6 +190,14 @@ class PPO(object):
                 print(f'save current best reward: {mean_rewards:.2f}')
                 self.best_rewards = mean_rewards
                 self.save(os.path.join(self.nn_dir, 'best'))
+
+            info_string = f'Agent Steps: {int(self.agent_steps // 1e6):04}M | FPS: {all_fps:.1f} | ' \
+                          f'Last FPS: {last_fps:.1f} | ' \
+                          f'Collect Time: {self.data_collect_time / 60:.1f} min | ' \
+                          f'Train RL Time: {self.rl_train_time / 60:.1f} min | ' \
+                          f'Mean Rewards: {mean_rewards} | ' \
+                          f'Current Best: {self.best_rewards:.2f}'
+            print(info_string)
 
         print('max steps achieved')
 

@@ -9,8 +9,10 @@ from __future__ import annotations
 import numpy as np
 import torch
 from collections.abc import Sequence
-import time
 
+import carb
+import isaaclab.sim as sim_utils
+import omni.physics.tensors.impl.api as physx
 from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
 
 from .sharpa_wave_grasp_env_cfg import SharpaWaveEnvCfg
@@ -21,6 +23,15 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
     def __init__(self, cfg: SharpaWaveEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
         self.saved_grasping_states = torch.zeros((0, 29), dtype=torch.float32, device=self.device)
+        self.gravity_id = 0
+        self.gravity_all_directions = [
+            carb.Float3(0.0, 0.0, 9.81),
+            carb.Float3(0.0, 0.0, -9.81),
+            carb.Float3(0.0, 9.81, 0.0),
+            carb.Float3(0.0, -9.81, 0.0),
+            carb.Float3(9.81, 0.0, 0.0),
+            carb.Float3(-9.81, 0.0, 0.0),
+        ]
 
     def _get_rewards(self) -> torch.Tensor:
         cond1 = (torch.norm(self.fingertip_pos - self.object_pos.unsqueeze(1), dim=-1, p=2) < 0.1).all(-1)
@@ -29,6 +40,10 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         cond3 = torch.less(quat_to_rot(quat_mul(self.object_rot, quat_conjugate(self.object.data.default_root_state.clone()[:, 3:7]))), self.cfg.reset_angle_diff)
         cond = cond1.float() * cond2.float() * cond3.float()
         self.reset_buf[cond < 1] = 1
+        if self.common_step_counter % 40 == 0:
+            self.physics_sim_view.set_gravity(self.gravity_all_directions[self.gravity_id])
+            self.gravity_id += 1
+            self.gravity_id %= len(self.gravity_all_directions)
         return 0
 
     def _reset_idx(self, env_ids: Sequence[int] | None):

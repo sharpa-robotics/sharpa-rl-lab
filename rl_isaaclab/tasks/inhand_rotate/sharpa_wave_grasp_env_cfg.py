@@ -51,7 +51,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"assets/sharpa_ha4/Collected_ha4_half_simplify/ha4_half_simplify.usd",
+            usd_path=f"assets/sharpa_ha4/Collected_ha4_sim_4_2_filteredpairs/ha4_sim_4_2.usd",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,

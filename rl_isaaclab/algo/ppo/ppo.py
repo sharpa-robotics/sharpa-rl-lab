@@ -176,6 +176,7 @@ class PPO(object):
                           f'Last FPS: {last_fps:.1f} | ' \
                           f'Collect Time: {self.data_collect_time / 60:.1f} min | ' \
                           f'Train RL Time: {self.rl_train_time / 60:.1f} min | ' \
+                          f'Mean Rewards: {mean_rewards} | ' \
                           f'Current Best: {self.best_rewards:.2f}'
             print(info_string)
 

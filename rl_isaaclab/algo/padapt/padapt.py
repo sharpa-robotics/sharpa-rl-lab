@@ -148,6 +148,7 @@ class ProprioAdapt(object):
             _last_t = time.time()
             info_string = f'Agent Steps: {int(self.agent_steps // 1e6):04}M | FPS: {all_fps:.1f} | ' \
                           f'Last FPS: {last_fps:.1f} | ' \
+                          f'Mean Rewards: {mean_rewards} | ' \
                           f'Current Best: {self.best_rewards:.2f}'
             tprint(info_string)
 

@@ -198,7 +198,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['pitch'] = self.object_angvel[:, 1].mean()
         self.extras['yaw'] = self.object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
-        self.extras['angle_diff_reward'] = angle_diff.mean()
+        # self.extras['angle_diff_reward'] = angle_diff.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]

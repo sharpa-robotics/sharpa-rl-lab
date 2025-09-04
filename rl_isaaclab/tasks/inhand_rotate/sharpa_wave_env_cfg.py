@@ -49,6 +49,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     torque_control = True
     pgain = 60
     dgain = 4
+    pd_calib_mode = True
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,

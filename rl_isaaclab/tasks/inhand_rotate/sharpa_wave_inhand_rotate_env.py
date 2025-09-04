@@ -11,6 +11,7 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+import carb
 import isaaclab.sim as sim_utils
 import omni.physics.tensors.impl.api as physx
 from isaaclab.assets import Articulation, RigidObject
@@ -207,6 +208,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
+        self.extras['total_reward'] = total_reward.mean()
+
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -220,6 +223,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
         # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
+        if self.extras['height_reset_lower'] < 5e-4:
+            self.physics_sim_view.set_gravity(carb.Float3(0.0, 0.0, self.physics_sim_view.get_gravity()[2]-0.05))
         return height_reset, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | None):

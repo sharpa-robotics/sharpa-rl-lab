@@ -17,20 +17,6 @@ from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
 
 
-class EventCfg:
-    reset_gravity = EventTermCfg(
-        func=mdp.randomize_physics_scene_gravity,
-        mode="interval",
-        is_global_time=True,
-        interval_range_s=(75.0, 75.0),  # time_s = num_steps * (decimation * dt)
-        params={
-            "gravity_distribution_params": ([0.0, 0.0, -0.05], [0.0, 0.0, 0.0]),
-            "operation": "add",
-            "distribution": "gaussian",
-        },
-    )
-
-
 @configclass
 class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # env
@@ -256,8 +242,6 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
-    # events
-    events: EventCfg = EventCfg()
     # reset
     reset_height_lower = 0.62
     reset_height_upper = 0.66

@@ -10,7 +10,6 @@ import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
-from isaaclab.managers import EventTermCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
@@ -253,7 +252,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_max = 0.5
     rotate_reward_scale = 2.0
     object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.3
+    pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward

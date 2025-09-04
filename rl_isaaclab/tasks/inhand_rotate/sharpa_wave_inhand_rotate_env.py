@@ -75,9 +75,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.d_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.d_gain
 
         # pd calib version
+        self.p_gain_calib = torch.tensor([103.00, 103.00, 6.20, 103.00, 780.48, 57.20, 57.20, 103.00, 57.20, 47.06, 60.00, 60.00, 57.20, 60.00, 103.00, 60.00, 60.00, 60.00, 60.00, 57.20, 60.00, 60.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
+        self.d_gain_calib = torch.tensor([16.98, 16.98, 7.32, 16.98, 46.84, 18.65, 18.65, 16.98, 18.65, 10.38, 4.00, 4.00, 18.65, 4.00, 16.98, 4.00, 4.00, 4.00, 4.00, 18.65, 4.00, 4.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
         if self.cfg.pd_calib_mode:
-            self.p_gain = torch.tensor([103.00, 103.00, 6.20, 103.00, 780.48, 57.20, 57.20, 103.00, 57.20, 47.06, 60.00, 60.00, 57.20, 60.00, 103.00, 60.00, 60.00, 60.00, 60.00, 57.20, 60.00, 60.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
-            self.d_gain = torch.tensor([16.98, 16.98, 7.32, 16.98, 46.84, 18.65, 18.65, 16.98, 18.65, 10.38, 4.00, 4.00, 18.65, 4.00, 16.98, 4.00, 4.00, 4.00, 4.00, 18.65, 4.00, 4.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
+            self.p_gain = self.p_gain_calib.clone()
+            self.d_gain = self.d_gain_calib.clone()
 
         # grasp_cache
         if self.cfg.grasp_cache_path:
@@ -234,9 +236,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         super()._reset_idx(env_ids)
 
         # pd randomize
-        if self.cfg.randomize_pd_gains and not self.cfg.pd_calib_mode:
-            self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
-            self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
+        if self.cfg.randomize_pd_gains:
+            if not self.cfg.pd_calib_mode:
+                self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
+                self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
+            else:
+                self.p_gain[env_ids] = sample_uniform(self.p_gain_calib[env_ids]-10, self.p_gain_calib[env_ids]+10, (len(env_ids), self.cfg.action_space), device=self.device)
+                self.d_gain[env_ids] = sample_uniform(self.d_gain_calib[env_ids]-0.5, self.d_gain_calib[env_ids]+0.5, (len(env_ids), self.cfg.action_space), device=self.device)
 
         # pose cache
         if self.saved_grasping_states is not None:

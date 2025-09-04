@@ -76,8 +76,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # pd calib version
         if self.cfg.pd_calib_mode:
-            self.p_gain = torch.tensor([103.00, 103.00, 6.20, 103.00, 780.48, 57.20, 57.20, 103.00, 57.20, 47.06, 60.00, 60.00, 57.20, 60.00, 103.00, 60.00, 60.00, 60.00, 60.00, 57.20, 60.00, 60.00], device=self.device, dtype=torch.float)
-            self.d_gain = torch.tensor([16.98, 16.98, 7.32, 16.98, 46.84, 18.65, 18.65, 16.98, 18.65, 10.38, 4.00, 4.00, 18.65, 4.00, 16.98, 4.00, 4.00, 4.00, 4.00, 18.65, 4.00, 4.00], device=self.device, dtype=torch.float)
+            self.p_gain = torch.tensor([103.00, 103.00, 6.20, 103.00, 780.48, 57.20, 57.20, 103.00, 57.20, 47.06, 60.00, 60.00, 57.20, 60.00, 103.00, 60.00, 60.00, 60.00, 60.00, 57.20, 60.00, 60.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
+            self.d_gain = torch.tensor([16.98, 16.98, 7.32, 16.98, 46.84, 18.65, 18.65, 16.98, 18.65, 10.38, 4.00, 4.00, 18.65, 4.00, 16.98, 4.00, 4.00, 4.00, 4.00, 18.65, 4.00, 4.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
 
         # grasp_cache
         if self.cfg.grasp_cache_path:

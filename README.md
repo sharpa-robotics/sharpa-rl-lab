@@ -5,6 +5,7 @@ https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installa
 ```bash
 conda activate env_isaaclab 
 cd sharpa_tac_rl 
+git submodule update --init --recursive 
 pip install -e .
 ```
 
@@ -29,4 +30,9 @@ python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --n
 ## vis distillation
 ```bash
 python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --num_envs 1 --algorithm ProprioAdapt --load_path output
+```
+
+# make prim uninstanceable
+```bash
+python rl_isaaclab/scripts/make_uninstanceable.py --usd_file usd_file --prim_path prim_path
 ```

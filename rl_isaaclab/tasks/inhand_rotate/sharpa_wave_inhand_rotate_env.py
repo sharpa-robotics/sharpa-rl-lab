@@ -225,8 +225,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
         # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
-        if self.extras['height_reset_lower'] < 5e-4:
-            self.physics_sim_view.set_gravity(carb.Float3(0.0, 0.0, self.physics_sim_view.get_gravity()[2]-0.05))
+        if self.extras['height_reset_upper'] < 5e-4:
+            self.physics_sim_view.set_gravity(carb.Float3(0.0, 0.0, self.physics_sim_view.get_gravity()[2]+0.05))
         return height_reset, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | None):

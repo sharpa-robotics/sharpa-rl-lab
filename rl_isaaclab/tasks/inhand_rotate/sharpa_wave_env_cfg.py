@@ -39,7 +39,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
         render_interval=2,
-        gravity=(0.0, 0.0, -0.05),
+        gravity=(0.0, 0.0, 0.05),
         physx=PhysxCfg(
             solver_type=1,
             max_position_iteration_count=8,

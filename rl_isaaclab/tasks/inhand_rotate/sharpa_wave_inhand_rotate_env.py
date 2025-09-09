@@ -225,7 +225,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
         # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
-        if self.extras['height_reset_upper'] < 5e-4 or self.extras['height_reset_lower'] < 5e-4:
+        if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
             xyz = torch.randint(0, 3, (1,)).item()
             direction = torch.randint(0, 2, (1,)).item() * 2 - 1
             gravity_amp = self.physics_sim_view.get_gravity()

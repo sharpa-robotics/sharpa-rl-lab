@@ -301,3 +301,5 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     random_force_prob_scalar = 0.25
     force_decay = 0.9
     force_decay_interval = 0.08
+    # curriculum
+    gravity_curriculum = True

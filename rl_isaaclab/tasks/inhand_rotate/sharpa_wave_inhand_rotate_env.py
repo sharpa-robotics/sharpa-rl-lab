@@ -92,7 +92,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # contact buffers
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
-        self._contact_body_ids_disable = torch.tensor([1, 4], dtype=torch.long)
+        self._contact_body_ids_disable = torch.tensor([], dtype=torch.long)
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
 
         # randomize
@@ -225,8 +225,15 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
         # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
-        if self.extras['height_reset_upper'] < 5e-4:
-            self.physics_sim_view.set_gravity(carb.Float3(0.0, 0.0, self.physics_sim_view.get_gravity()[2]+0.05))
+        if self.extras['height_reset_upper'] < 5e-4 or self.extras['height_reset_lower'] < 5e-4:
+            xyz = torch.randint(0, 3, (1,)).item()
+            direction = torch.randint(0, 2, (1,)).item() * 2 - 1
+            gravity_amp = self.physics_sim_view.get_gravity()
+            gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2)) + 0.05
+            new_gravity = carb.Float3(0.0, 0.0, 0.0)
+            new_gravity[xyz] = direction * gravity_amp
+            self.physics_sim_view.set_gravity(new_gravity)
+            print(f"update gravity: {new_gravity}")
         return height_reset, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | None):
@@ -316,6 +323,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
         sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
 
+        # contact pos
+        contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :]-self.scene.env_origins for id in self._contact_body_ids], dim=1)
+        contact_pos = torch.nan_to_num(contact_pos, nan=0.0)
+
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
         joint_noise_matrix = (torch.rand(self.hand_dof_pos.shape, device=self.device) * 2.0 - 1.0) * self.cfg.joint_noise_scale
@@ -326,7 +337,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         ).clone().unsqueeze(1)
         cur_tar_buf = self.cur_targets[:, None]
         cur_obs_buf = torch.cat([cur_obs_buf, cur_tar_buf], dim=-1)
-        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.clone().unsqueeze(1)], dim=-1)
+        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.clone().unsqueeze(1), contact_pos.clone().unsqueeze(1)], dim=-1)
         self.obs_buf_lag_history[:] = torch.cat([prev_obs_buf, cur_obs_buf], dim=1)
 
         # refill the initialized buffers
@@ -338,6 +349,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         ).clone().unsqueeze(1)
         self.obs_buf_lag_history[at_reset_env_ids, :, 22:44] = self.hand_dof_pos[at_reset_env_ids].unsqueeze(1)
         self.obs_buf_lag_history[at_reset_env_ids, :, 44:49] = sensed_contacts[at_reset_env_ids].unsqueeze(1)
+        self.obs_buf_lag_history[at_reset_env_ids, :, 49:64] = contact_pos[at_reset_env_ids].unsqueeze(1)
         self.at_reset_buf[at_reset_env_ids] = 0
         obs_buf = (self.obs_buf_lag_history[:, -3:].reshape(self.num_envs, -1)).clone()
 

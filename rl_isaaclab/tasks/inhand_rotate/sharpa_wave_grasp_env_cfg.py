@@ -23,7 +23,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_scale,
         mode="prestartup",
         params={
-            "scale_range": (0.7, 0.8),
+            "scale_range": (0.6, 0.85),
             "asset_cfg": SceneEntityCfg("object"),
         },
     )

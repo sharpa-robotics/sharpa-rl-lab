@@ -18,7 +18,7 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
+from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, axis_angle_from_quat, saturate
 
 if TYPE_CHECKING:
     from .sharpa_wave_env_cfg import SharpaWaveEnvCfg
@@ -41,6 +41,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.object_rot = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
         self.object_pos_prev = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
         self.object_rot_prev = torch.zeros((self.num_envs, 4), dtype=torch.float, device=self.device)
+        self.object_default_pose = torch.zeros((self.num_envs, 7), dtype=torch.float, device=self.device)
         self.rb_forces = torch.zeros((self.num_envs, 3), dtype=torch.float, device=self.device)
 
         # buffers for data
@@ -179,14 +180,15 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
     def _get_rewards(self) -> torch.Tensor:
         # primary reward
-        rotate_reward = saturate((self.object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
-        object_linvel_penalty = torch.norm(self.object_linvel, p=1, dim=-1)
+        object_angvel = axis_angle_from_quat(quat_mul(self.object_rot, quat_conjugate(self.object_rot_prev))) / self.step_dt
+        rotate_reward = saturate((object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
+        object_linvel_penalty = torch.norm(self.object_pos - self.object_pos_prev, p=1, dim=-1) / self.step_dt
         pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
         torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
         work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
 
         # auxiliary reward
-        angle_diff = (self.object_angvel * self.rot_axis).sum(-1) * self.step_dt
+        angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
         angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object.data.default_root_state.clone()[:, :3], dim=-1) + 0.001)
 
@@ -204,9 +206,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
         self.extras["torque_penalty"] = torque_penalty.mean()
         self.extras["work_penalty"] = work_penalty.mean()
-        self.extras['roll'] = self.object_angvel[:, 0].mean()
-        self.extras['pitch'] = self.object_angvel[:, 1].mean()
-        self.extras['yaw'] = self.object_angvel[:, 2].mean()
+        self.extras['roll'] = object_angvel[:, 0].mean()
+        self.extras['pitch'] = object_angvel[:, 1].mean()
+        self.extras['yaw'] = object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
@@ -220,11 +222,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
         height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
-        # angle_reset = torch.greater(quat_to_rot(quat_mul(self.object_rot, quat_conjugate(self.object.data.default_root_state.clone()[:, 3:7]))), self.cfg.reset_angle_diff)
+        object_angvel = axis_angle_from_quat(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
+        angle_reset = torch.greater((object_angvel * (1 - self.rot_axis)).sum(-1), self.cfg.reset_angle_diff)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         self.extras['height_reset_upper'] = height_reset_upper.float().mean()
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
-        # self.extras['angle_reset'] = angle_reset.float().mean()
+        self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
         if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
             xyz = torch.randint(0, 3, (1,)).item()
@@ -235,7 +238,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             new_gravity[xyz] = direction * gravity_amp
             self.physics_sim_view.set_gravity(new_gravity)
             print(f"update gravity: {new_gravity}")
-        return height_reset, time_out
+        return height_reset | angle_reset, time_out
 
     def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):
         rand_scale_s = torch.distributions.Uniform(lower, 1).sample((num_envs, n_dofs)).to(self.device)
@@ -274,6 +277,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
         object_default_state[:, 3:7] = sampled_pose[:, 25:29]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
+        self.object_default_pose[env_ids] = object_default_state[:, :7]
 
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)

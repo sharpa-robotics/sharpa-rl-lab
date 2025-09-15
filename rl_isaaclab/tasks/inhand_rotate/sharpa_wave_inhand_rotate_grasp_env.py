@@ -93,7 +93,7 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         self.rb_forces[env_ids, :] = 0.0
 
         # reset hand
-        dof_pos = self.hand.data.default_joint_pos[env_ids] + 0.15 * rand_floats
+        dof_pos = self.hand.data.default_joint_pos[env_ids] + 0.25 * rand_floats
         dof_pos = saturate(dof_pos, self.hand_dof_lower_limits[env_ids], self.hand_dof_upper_limits[env_ids],)
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
 

@@ -70,6 +70,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     agent_cfg["algo"] = args_cli.algorithm if args_cli.algorithm is not None else agent_cfg["algo"]
     agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
     env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
+    agent_cfg["algorithm"]['minibatch_size'] = min([args_cli.num_envs * 8, 32768])
     config = ConfigWrapper(agent_cfg, env_cfg)
 
     # specify directory for logging experiments

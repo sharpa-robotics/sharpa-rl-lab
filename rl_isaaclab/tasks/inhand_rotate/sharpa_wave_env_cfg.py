@@ -40,7 +40,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     state_space = 0
     asymmetric_obs = False
     # control
-    decimation = 4
+    decimation = 12
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24

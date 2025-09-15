@@ -196,7 +196,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             pos_diff_penalty, self.cfg.pos_diff_penalty_scale,
             torque_penalty, self.cfg.torque_penalty_scale,
             work_penalty, self.cfg.work_penalty_scale,
-            angle_diff, self.cfg.rot_diff_reward_scale,
             object_pos_diff, self.cfg.object_pos_reward_scale,
         )
 
@@ -209,7 +208,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['pitch'] = self.object_angvel[:, 1].mean()
         self.extras['yaw'] = self.object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
-        # self.extras['angle_diff_reward'] = angle_diff.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -418,7 +416,6 @@ def compute_rewards(
     pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
     work_penalty: torch.Tensor, work_penalty_scale: float,
-    angle_diff: torch.Tensor, rot_diff_reward_scale: float,
     object_pos_diff: torch.Tensor, object_pos_reward_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
@@ -426,7 +423,6 @@ def compute_rewards(
     reward += pos_diff_penalty * pos_diff_penalty_scale
     reward += torque_penalty * torque_penalty_scale
     reward += work_penalty * work_penalty_scale
-    reward += angle_diff * rot_diff_reward_scale
     reward += object_pos_diff * object_pos_reward_scale
     return reward
 

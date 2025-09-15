@@ -66,20 +66,21 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         joint_pos_limits = self.hand.root_physx_view.get_dof_limits().to(self.device)
         self.hand_dof_lower_limits = joint_pos_limits[..., 0]
         self.hand_dof_upper_limits = joint_pos_limits[..., 1]
+        self.hand_dof_upper_limits[:, 4] = torch.deg2rad(torch.tensor(95)) # important for good hand gestures
 
-        # pd control
-        self.p_gain = self.cfg.pgain
-        self.d_gain = self.cfg.dgain
-        assert type(self.p_gain) in [int, float] and type(self.d_gain) in [int, float], 'assume p_gain and d_gain are only scalars'
-        self.p_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.p_gain
-        self.d_gain = torch.ones((self.num_envs, self.cfg.action_space), device=self.device, dtype=torch.float) * self.d_gain
+        self.p_gain_default = self.hand.data.default_joint_stiffness[:,self.actuated_dof_indices].clone()
+        self.d_gain_default = self.hand.data.default_joint_damping[:,self.actuated_dof_indices].clone()
 
-        # pd calib version
-        self.p_gain_calib = torch.tensor([103.00, 103.00, 6.20, 103.00, 780.48, 57.20, 57.20, 103.00, 57.20, 47.06, 60.00, 60.00, 57.20, 60.00, 103.00, 60.00, 60.00, 60.00, 60.00, 57.20, 60.00, 60.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
-        self.d_gain_calib = torch.tensor([16.98, 16.98, 7.32, 16.98, 46.84, 18.65, 18.65, 16.98, 18.65, 10.38, 4.00, 4.00, 18.65, 4.00, 16.98, 4.00, 4.00, 4.00, 4.00, 18.65, 4.00, 4.00], device=self.device, dtype=torch.float).repeat(self.num_envs, 1)
-        if self.cfg.pd_calib_mode:
-            self.p_gain = self.p_gain_calib.clone()
-            self.d_gain = self.d_gain_calib.clone()
+        self.p_gain = self.p_gain_default.clone()
+        self.d_gain = self.d_gain_default.clone()
+
+        if self.cfg.torque_control:
+            self.hand.data.default_joint_stiffness = torch.zeros_like(self.p_gain_default, device=self.device)
+            self.hand.data.default_joint_damping = torch.zeros_like(self.d_gain_default, device=self.device)
+        
+            for key, act in self.hand.actuators.items():
+                act.stiffness = torch.zeros_like(act.stiffness, device=self.device)
+                act.damping = torch.zeros_like(act.damping, device=self.device)
 
         # grasp_cache
         if self.cfg.grasp_cache_path:
@@ -121,6 +122,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         spawn_ground_plane(prim_path="/World/ground", cfg=GroundPlaneCfg())
         # clone and replicate (no need to filter for this environment)
         self.scene.clone_environments(copy_from_source=False)
+        self.scene.filter_collisions()
         # add articulation to scene - we must register to scene to randomize with EventManager
         self.scene.articulations["robot"] = self.hand
         self.scene.rigid_objects["object"] = self.object
@@ -158,7 +160,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._refresh_lab()
         if self.cfg.torque_control:
             torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
-            self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
+            self.torques = torques.clone()
+            # self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
             self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         else:
             self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
@@ -236,6 +239,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             print(f"update gravity: {new_gravity}")
         return height_reset, time_out
 
+    def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):
+        rand_scale_s = torch.distributions.Uniform(lower, 1).sample((num_envs, n_dofs)).to(self.device)
+        rand_scale_l = torch.distributions.Uniform(1, upper).sample((num_envs, n_dofs)).to(self.device)
+        mask_choice = torch.rand((num_envs, n_dofs), device=self.device) > 0.5
+        rand_scale = torch.where(mask_choice, rand_scale_s, rand_scale_l)
+        return rand_scale
+
     def _reset_idx(self, env_ids: Sequence[int] | None):
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
@@ -244,12 +254,14 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # pd randomize
         if self.cfg.randomize_pd_gains:
-            if not self.cfg.pd_calib_mode:
-                self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
-                self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
-            else:
-                self.p_gain[env_ids] = sample_uniform(self.p_gain_calib[env_ids]-10, self.p_gain_calib[env_ids]+10, (len(env_ids), self.cfg.action_space), device=self.device)
-                self.d_gain[env_ids] = sample_uniform(self.d_gain_calib[env_ids]-0.5, self.d_gain_calib[env_ids]+0.5, (len(env_ids), self.cfg.action_space), device=self.device)
+            assert self.cfg.randomize_p_gain_scale_lower <= 1, "pd scale参数lower必须<=1, upper必须>=1" 
+            assert self.cfg.randomize_p_gain_scale_upper >= 1, "pd scale参数lower必须<=1, upper必须>=1" 
+            assert self.cfg.randomize_d_gain_scale_lower <= 1, "pd scale参数lower必须<=1, upper必须>=1" 
+            assert self.cfg.randomize_d_gain_scale_upper >= 1, "pd scale参数lower必须<=1, upper必须>=1" 
+            rand_scale = self._rand_pd_scales(self.cfg.randomize_p_gain_scale_lower, self.cfg.randomize_p_gain_scale_upper, len(env_ids), self.num_hand_dofs)
+            self.p_gain[env_ids] = self.p_gain_default[env_ids] * rand_scale
+            rand_scale = self._rand_pd_scales(self.cfg.randomize_d_gain_scale_lower, self.cfg.randomize_d_gain_scale_upper, len(env_ids), self.num_hand_dofs)
+            self.d_gain[env_ids] = self.d_gain_default[env_ids] * rand_scale
 
         # pose cache
         if self.saved_grasping_states is not None:
@@ -293,14 +305,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # data for hand
         self.fingertip_pos = self.hand.data.body_pos_w[:, self.finger_bodies]
         self.fingertip_rot = self.hand.data.body_quat_w[:, self.finger_bodies]
-        self.fingertip_pos -= self.scene.env_origins.repeat((1, self.num_fingertips)).reshape(
-            self.num_envs, self.num_fingertips, 3
-        )
+        self.fingertip_pos -= self.scene.env_origins.repeat((1, self.num_fingertips)).reshape(self.num_envs, self.num_fingertips, 3)
         self.fingertip_velocities = self.hand.data.body_vel_w[:, self.finger_bodies]
 
         self.hand_dof_pos = self.hand.data.joint_pos
         self.hand_dof_vel = self.hand.data.joint_vel
-        self.hand_dof_torque = self.hand.data.computed_torque
+        self.hand_dof_torque = self.hand.data.applied_torque
 
         # data for object
         self.object_pos = self.object.data.root_pos_w - self.scene.env_origins
@@ -392,7 +402,7 @@ def unscale(x, lower, upper):
 @torch.jit.script
 def randomize_rotation(rand0, rand1, x_unit_tensor, y_unit_tensor):
     return quat_mul(
-        quat_from_angle_axis(rand0 * np.pi, x_unit_tensor), quat_from_angle_axis(rand1 * np.pi, y_unit_tensor)
+        quat_from_angle_axis(rand0 * torch.pi, x_unit_tensor), quat_from_angle_axis(rand1 * torch.pi, y_unit_tensor)
     )
 
 @torch.jit.script

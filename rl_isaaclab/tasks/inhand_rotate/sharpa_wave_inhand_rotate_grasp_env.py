@@ -5,6 +5,7 @@
 
 
 from __future__ import annotations
+import time
 
 import numpy as np
 import torch
@@ -53,7 +54,7 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         success = self.episode_length_buf[env_ids] == self.max_episode_length - 1
         all_states = torch.cat([self.hand_dof_pos, self.object_pos, self.object_rot], dim=1)
         self.saved_grasping_states = torch.cat([self.saved_grasping_states, all_states[env_ids][success]])
-        print('current cache size:', self.saved_grasping_states.shape[0])
+        print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size:', self.saved_grasping_states.shape[0])
         if len(self.saved_grasping_states) >= 5e4:
             name = f'cache/sharpa_grasp_50k_newest.npy'
             np.save(name, self.saved_grasping_states[:50000].cpu().numpy())

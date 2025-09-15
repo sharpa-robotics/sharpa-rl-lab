@@ -6,13 +6,27 @@
 import math
 
 import isaaclab.sim as sim_utils
+import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
+from isaaclab.managers import EventTermCfg, SceneEntityCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
+
+
+@configclass
+class EventCfg:
+    randomize_scale = EventTermCfg(
+        func=mdp.randomize_rigid_body_scale,
+        mode="prestartup",
+        params={
+            "scale_range": (0.6, 0.85),
+            "asset_cfg": SceneEntityCfg("object"),
+        },
+    )
 
 
 @configclass
@@ -31,13 +45,10 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     clip_actions = 1.0
     action_scale = 1 / 24
     torque_control = False
-    pgain = 60
-    dgain = 4
-    pd_calib_mode = False
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
-        render_interval=2,
+        render_interval=decimation,
         gravity=(0.0, 0.0, -9.81),
         physx=PhysxCfg(
             solver_type=1,
@@ -71,7 +82,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             ),
             collision_props=sim_utils.CollisionPropertiesCfg(
                 collision_enabled=True,
-                contact_offset=0.002, 
+                contact_offset=0.002,
                 rest_offset=0.0
             ),
         ),
@@ -106,11 +117,9 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         actuators={
             "fingers": ImplicitActuatorCfg(
                 joint_names_expr=[".*"],
-                effort_limit_sim=20.0,
-                stiffness=200.0,
-                damping=4.0,
-                friction=0.1,
-                armature=0.1,
+                # effort_limit_sim=20.0,
+                stiffness=None,
+                damping=None,
             ),
         },
         soft_joint_pos_limit_factor=1.0,
@@ -249,7 +258,9 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=False)
+    # event
+    events: EventCfg = EventCfg()
     # reset
     reset_height_lower = 0.635
     reset_height_upper = 0.645
@@ -266,10 +277,10 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_sensor_noise = 0.01
     # randomize
     randomize_pd_gains = False
-    randomize_p_gain_lower = 40
-    randomize_p_gain_upper = 100
-    randomize_d_gain_lower = 3
-    randomize_d_gain_upper = 5
+    randomize_p_gain_scale_lower = 0.5
+    randomize_p_gain_scale_upper = 2
+    randomize_d_gain_scale_lower = 0.5
+    randomize_d_gain_scale_upper = 2
     randomize_friction = False
     randomize_friction_lower = 0.3
     randomize_friction_upper = 3.0
@@ -286,4 +297,3 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     force_decay_interval = 0.08
     # curriculum
     gravity_curriculum = False
-    

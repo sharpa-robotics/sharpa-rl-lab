@@ -23,7 +23,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_scale,
         mode="prestartup",
         params={
-            "scale_range": (0.6, 0.85),
+            "scale_range": (0.7, 0.8),
             "asset_cfg": SceneEntityCfg("object"),
         },
     )
@@ -253,7 +253,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 rest_offset=0.0
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
-            scale=(0.75, 0.75, 0.75),
+            scale=(1., 1., 1.),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )

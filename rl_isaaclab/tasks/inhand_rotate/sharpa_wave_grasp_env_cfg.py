@@ -253,7 +253,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 rest_offset=0.0
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
-            scale=(0.75, 0.75, 0.75),
+            scale=(1., 1., 1.),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
     )

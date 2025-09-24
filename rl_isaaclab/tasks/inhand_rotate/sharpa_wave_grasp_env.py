@@ -21,7 +21,8 @@ from .sharpa_wave_env import SharpaWaveInhandRotateEnv
 class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
     def __init__(self, cfg: SharpaWaveEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
-        self.saved_grasping_states = torch.zeros((0, 29), dtype=torch.float32, device=self.device)
+        self.saved_grasping_states = torch.zeros((self.num_envs, 29), dtype=torch.float32, device=self.device)
+        self.saved_length = torch.zeros((self.num_envs,), dtype=torch.float32, device=self.device)
         self.gravity_id = 0
         self.gravity_all_directions = [
             carb.Float3(0.0, 0.0, 9.81),
@@ -51,13 +52,15 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
             env_ids = self.hand._ALL_INDICES
 
         self._refresh_lab()
-        success = self.episode_length_buf[env_ids] == self.max_episode_length - 1
+        success = self.episode_length_buf == self.max_episode_length - 1
         all_states = torch.cat([self.hand_dof_pos, self.object_pos, self.object_rot], dim=1)
+        self.saved_grasping_states[success] = all_states[success].clone()
         self.saved_grasping_states = torch.cat([self.saved_grasping_states, all_states[env_ids][success]])
-        print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size:', self.saved_grasping_states.shape[0])
-        if len(self.saved_grasping_states) >= 5e4:
-            name = f'cache/sharpa_grasp_50k_60-85.npy'
-            np.save(name, self.saved_grasping_states[:50000].cpu().numpy())
+        print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size:', torch.sum(self.saved_length))
+        self.saved_length[success] = 1
+        if torch.sum(self.saved_length) == self.num_envs:
+            name = f'cache/sharpa_grasp_linspace_{self.num_envs}.npy'
+            np.save(name, self.saved_grasping_states.cpu().numpy())
             exit()
 
         self.scene.reset(env_ids)

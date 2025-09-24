@@ -18,7 +18,7 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_conjugate, quat_mul, axis_angle_from_quat, saturate
+from isaaclab.utils.math import quat_conjugate, quat_mul, axis_angle_from_quat, saturate, quat_inv
 
 if TYPE_CHECKING:
     from .sharpa_wave_env_cfg import SharpaWaveEnvCfg
@@ -96,6 +96,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
         self._contact_body_ids_disable = torch.tensor([], dtype=torch.long)
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
+        self.elastomer_ids = [self.hand.body_names.index(body_name) for body_name in 
+                              ["right_thumb_elastomer", 
+                               "right_index_elastomer", 
+                               "right_middle_elastomer",
+                               "right_ring_elastomer", 
+                               "right_pinky_elastomer"]]
 
         # align real
         self.hand.actuators['joints'].effort_limit *= self.cfg.current_coef
@@ -194,7 +200,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
         angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object.data.default_root_state.clone()[:, :3], dim=-1) + 0.001)
-        angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
+        # angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -214,7 +220,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['pitch'] = object_angvel[:, 1].mean()
         self.extras['yaw'] = object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
-        self.extras['angle_diff_z'] = angle_diff_z.mean()
+        # self.extras['angle_diff_z'] = angle_diff_z.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -227,14 +233,14 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
         height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
-        angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
-        angle_reset = torch.greater(angle_diff_z, self.cfg.reset_angle_diff)
+        # angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
+        # angle_reset = torch.greater(angle_diff_z, self.cfg.reset_angle_diff)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         self.extras['height_reset_upper'] = height_reset_upper.float().mean()
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
-        self.extras['angle_reset'] = angle_reset.float().mean()
+        # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
-        if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.extras['angle_reset'] < 5e-4 and self.cfg.gravity_curriculum:
+        if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
             xyz = torch.randint(0, 3, (1,)).item()
             direction = torch.randint(0, 2, (1,)).item() * 2 - 1
             gravity_amp = self.physics_sim_view.get_gravity()
@@ -243,7 +249,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             new_gravity[xyz] = direction * gravity_amp
             self.physics_sim_view.set_gravity(new_gravity)
             print(f"update gravity: {new_gravity}")
-        return height_reset | angle_reset, time_out
+        return height_reset, time_out
 
     def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):
         rand_scale_s = torch.distributions.Uniform(lower, 1).sample((num_envs, n_dofs)).to(self.device)
@@ -271,8 +277,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # pose cache
         if self.saved_grasping_states is not None:
-            sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
-            sampled_pose = self.saved_grasping_states[sampled_pose_idx].clone()
+            # sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
+            sampled_pose = self.saved_grasping_states[env_ids].clone()
         else:
             raise RuntimeError("No saved grasping states found")
 
@@ -328,22 +334,39 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
     def compute_observations(self):
         # contact
+        tactile_frame_pose = self.hand.data.body_link_state_w[:, self.elastomer_ids, :7]
+        tactile_frame_pos = tactile_frame_pose[..., :3]
+        tactile_frame_quat = tactile_frame_pose[..., 3:7]
+        world_quat = torch.zeros_like(tactile_frame_quat)
+        world_quat[..., 0] = 1.0
+
         net_contact_forces_history = torch.cat([self._contact_sensor[id].data.net_forces_w_history[:, :, 0, :].unsqueeze(2) for id in self._contact_body_ids], dim=2)
         norm_contact_forces_history = torch.norm(net_contact_forces_history, dim=-1)
         smooth_contact_forces = norm_contact_forces_history[:, 0, :] * self.cfg.contact_smooth + norm_contact_forces_history[:, 1, :] * (1 - self.cfg.contact_smooth)
-        binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)
-        binary_contacts[:, self._contact_body_ids_disable] = 0.0
-        latency_samples = torch.rand_like(self.last_contacts)
-        latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
-        self.last_contacts = self.last_contacts * latency + binary_contacts * (1 - latency)
-        mask = torch.rand_like(self.last_contacts)
-        mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
-        sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
+        if self.cfg.binary_contact:
+            binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)
+            binary_contacts[:, self._contact_body_ids_disable] = 0.0
+            latency_samples = torch.rand_like(self.last_contacts)
+            latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
+            self.last_contacts = self.last_contacts * latency + binary_contacts * (1 - latency)
+            mask = torch.rand_like(self.last_contacts)
+            mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
+            sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
+        else:
+            smooth_contact_forces = transform_between_frames(smooth_contact_forces, world_quat, tactile_frame_quat)
+            latency_samples = torch.rand_like(self.last_contacts)
+            latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
+            self.last_contacts = self.last_contacts * latency + smooth_contact_forces * (1 - latency)
+            sensed_contacts = self.last_contacts.clone()
 
         # contact pos
-        contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :]-self.scene.env_origins for id in self._contact_body_ids], dim=1)
+        not_contact_mask = sensed_contacts < 1.0e-6
+        contact_mask = ~not_contact_mask
+
+        contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :] for id in self._contact_body_ids], dim=1)
         contact_pos = torch.nan_to_num(contact_pos, nan=0.0)
-        contact_pos[:] = 0.0 # disable
+        contact_pos[contact_mask, :] = transform_between_frames(contact_pos[contact_mask, :] - tactile_frame_pos[contact_mask, :], world_quat[contact_mask, :], tactile_frame_quat[contact_mask, :])
+        contact_pos[not_contact_mask, :] = 0.0
 
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
@@ -441,3 +464,41 @@ def angle_between_axis_and_z(quat: torch.Tensor, eps: float = 1.0e-6) -> torch.T
     angle = torch.acos(cos_theta)
     angle = torch.where(zero_mask, torch.zeros_like(angle), angle)
     return angle
+
+@torch.jit.script
+def quat_rotate(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    """Rotate vector(s) v about the rotation described by quaternion(s) q.
+
+    Args:
+        q: Quaternion(s) in (w, x, y, z). Shape (..., 4).
+        v: Vector(s). Shape (..., 3).
+
+    Returns:
+        Rotated vector(s). Shape (..., 3).
+    """
+    # make v into pure quaternion (0, v)
+    zeros = torch.zeros_like(v[..., :1])
+    v_as_quat = torch.cat([zeros, v], dim=-1)  # (..., 4)
+    # rotate: q * v * q^-1
+    v_rot = quat_mul(quat_mul(q, v_as_quat), quat_inv(q))
+    return v_rot[..., 1:]  # drop scalar part
+
+
+@torch.jit.script
+def transform_between_frames(p_A: torch.Tensor, q_A: torch.Tensor,
+                             q_B: torch.Tensor) -> torch.Tensor:
+    """Transform a point from frame A to frame B (rotation only).
+
+    Args:
+        p_A: Point(s) in frame A, shape (..., 3).
+        q_A: Quaternion of frame A in world, shape (..., 4).
+        q_B: Quaternion of frame B in world, shape (..., 4).
+
+    Returns:
+        Point(s) in frame B, shape (..., 3).
+    """
+    # p in world frame
+    p_world = quat_rotate(q_A, p_A)
+    # p in B frame
+    p_B = quat_rotate(quat_inv(q_B), p_world)
+    return p_B

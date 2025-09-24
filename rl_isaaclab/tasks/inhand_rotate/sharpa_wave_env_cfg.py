@@ -6,7 +6,6 @@
 import math
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import IdealPDActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
@@ -16,14 +15,16 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
 
+from rl_isaaclab.utils.modified_events import randomize_rigid_body_scale
+
 
 @configclass
 class EventCfg:
     randomize_scale = EventTermCfg(
-        func=mdp.randomize_rigid_body_scale,
+        func=randomize_rigid_body_scale,
         mode="prestartup",
         params={
-            "scale_range": (0.7, 0.8),
+            "scale_range": [0.6, 0.85],
             "asset_cfg": SceneEntityCfg("object"),
         },
     )
@@ -130,35 +131,35 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             prim_path="/World/envs/env_.*/Robot/right_thumb_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=100,
+            max_contact_data_count_per_prim=10,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_index_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=100,
+            max_contact_data_count_per_prim=10,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_middle_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=100,
+            max_contact_data_count_per_prim=10,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_ring_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=100,
+            max_contact_data_count_per_prim=10,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_pinky_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=100,
+            max_contact_data_count_per_prim=10,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         # DP
@@ -225,7 +226,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/cylinder/cylinder.usd",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/cylinder/cylinder.usd",
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -259,7 +260,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_axis = (0, 0, 1)
     angvel_clip_min = -0.5
     angvel_clip_max = 0.5
-    rotate_reward_scale = 2.0
+    rotate_reward_scale = 2.5
     object_linvel_penalty_scale = -0.3
     pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
@@ -269,11 +270,12 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.001
     # grasp cache
-    grasp_cache_path = 'cache/sharpa_grasp_50k_newest.npy'
+    grasp_cache_path = 'cache/sharpa_grasp_linspace_16384.npy'
     # noise
     joint_noise_scale = 0.02
     # contact
-    contact_smooth = 0.5
+    binary_contact = False
+    contact_smooth = 0.05
     contact_threshold = 0.2
     contact_latency = 0.005
     contact_sensor_noise = 0.01

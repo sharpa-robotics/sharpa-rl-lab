@@ -23,12 +23,6 @@ class SharpaWaveInhandRotateTactileAlignEnv(SharpaWaveInhandRotateEnv):
         self.action_joint_id = 0
         self.action_sequence_id = 0
         self.total_round = 0
-        self.elastomer_ids = [self.hand.body_names.index(body_name) for body_name in 
-                              ["right_thumb_elastomer", 
-                               "right_index_elastomer", 
-                               "right_middle_elastomer",
-                               "right_ring_elastomer", 
-                               "right_pinky_elastomer"]]
         self.force_collect = torch.zeros((self.num_envs, 0, 5, 6), dtype=torch.float32, device=self.device)
         self.pos_diff = torch.zeros((self.num_envs, 0, 22), dtype=torch.float32, device=self.device)
 

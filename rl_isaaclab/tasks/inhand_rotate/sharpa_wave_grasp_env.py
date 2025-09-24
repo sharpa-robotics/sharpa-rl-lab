@@ -55,7 +55,6 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         success = self.episode_length_buf == self.max_episode_length - 1
         all_states = torch.cat([self.hand_dof_pos, self.object_pos, self.object_rot], dim=1)
         self.saved_grasping_states[success] = all_states[success].clone()
-        self.saved_grasping_states = torch.cat([self.saved_grasping_states, all_states[env_ids][success]])
         print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size:', torch.sum(self.saved_length))
         self.saved_length[success] = 1
         if torch.sum(self.saved_length) == self.num_envs:

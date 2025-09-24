@@ -12,10 +12,10 @@ import torch
 from collections.abc import Sequence
 
 import carb
-from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, sample_uniform, saturate
+from isaaclab.utils.math import quat_conjugate, quat_mul, saturate
 
 from .sharpa_wave_grasp_env_cfg import SharpaWaveEnvCfg
-from .sharpa_wave_inhand_rotate_env import SharpaWaveInhandRotateEnv
+from .sharpa_wave_env import SharpaWaveInhandRotateEnv
 
 
 class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
@@ -77,11 +77,6 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         # reset the episode length buffer
         self.episode_length_buf[env_ids] = 0
 
-        # pd randomize
-        if self.cfg.randomize_pd_gains:
-            self.p_gain[env_ids] = sample_uniform(self.cfg.randomize_p_gain_lower, self.cfg.randomize_p_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
-            self.d_gain[env_ids] = sample_uniform(self.cfg.randomize_d_gain_lower, self.cfg.randomize_d_gain_upper, (len(env_ids), self.cfg.action_space), device=self.device)
-
         rand_floats = 2.0 * torch.rand((len(env_ids), self.num_hand_dofs), device=self.device) - 1.0
         
         # reset object
@@ -113,41 +108,6 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         self.proprio_hist_buf[env_ids] = 0
         self.at_reset_buf[env_ids] = 1
 
-
-@torch.jit.script
-def scale(x, lower, upper):
-    return 0.5 * (x + 1.0) * (upper - lower) + lower
-
-@torch.jit.script
-def unscale(x, lower, upper):
-    return (2.0 * x - upper - lower) / (upper - lower)
-
-@torch.jit.script
-def randomize_rotation(rand0, rand1, x_unit_tensor, y_unit_tensor):
-    return quat_mul(
-        quat_from_angle_axis(rand0 * np.pi, x_unit_tensor), quat_from_angle_axis(rand1 * np.pi, y_unit_tensor)
-    )
-
-@torch.jit.script
-def rotation_distance(object_rot, target_rot):
-    # Orientation alignment for the cube in hand and goal cube
-    quat_diff = quat_mul(object_rot, quat_conjugate(target_rot))
-    return 2.0 * torch.asin(torch.clamp(torch.norm(quat_diff[:, 1:4], p=2, dim=-1), max=1.0))  # changed quat convention
-
-@torch.jit.script
-def compute_rewards(
-    rotate_reward: torch.Tensor, rotate_reward_scale: float,
-    object_linvel_penalty: torch.Tensor, object_linvel_penalty_scale: float,
-    pos_diff_penalty: torch.Tensor, pos_diff_penalty_scale: float,
-    torque_penalty: torch.Tensor, torque_penalty_scale: float,
-    work_penalty: torch.Tensor, work_penalty_scale: float,
-):
-    reward = rotate_reward * rotate_reward_scale
-    reward += object_linvel_penalty * object_linvel_penalty_scale
-    reward += pos_diff_penalty * pos_diff_penalty_scale
-    reward += torque_penalty * torque_penalty_scale
-    reward += work_penalty * work_penalty_scale
-    return reward
 
 @torch.jit.script
 def quat_to_rot(quaternion: torch.Tensor):

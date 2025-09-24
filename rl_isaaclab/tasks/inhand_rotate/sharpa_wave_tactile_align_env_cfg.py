@@ -10,23 +10,10 @@ import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
-from isaaclab.managers import EventTermCfg, SceneEntityCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
-
-
-@configclass
-class EventCfg:
-    randomize_scale = EventTermCfg(
-        func=mdp.randomize_rigid_body_scale,
-        mode="prestartup",
-        params={
-            "scale_range": (0.6, 0.85),
-            "asset_cfg": SceneEntityCfg("object"),
-        },
-    )
 
 
 @configclass
@@ -40,11 +27,11 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     state_space = 0
     asymmetric_obs = False
     # control
-    decimation = 12
+    decimation = 240
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24
-    torque_control = False
+    torque_control = True
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 240,
@@ -88,30 +75,30 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.5),
-            rot=(0.8660254, 0.0, -0.5, 0.0),
+            rot=(1.0, 0.0, 0.0, 0.0),
             joint_pos={
-                "right_thumb_CMC_FE": math.pi/180 * 98.3,
-                "right_thumb_CMC_AA": math.pi/180 * -20.0,
-                "right_thumb_MCP_FE": math.pi/180 * 29.0,
-                "right_thumb_MCP_AA": math.pi/180 * 11.3,
-                "right_thumb_IP": math.pi/180 * 25.6,
-                "right_index_MCP_FE": math.pi/180 * 48.4, 
-                "right_index_MCP_AA": math.pi/180 * -4.6,
-                "right_index_PIP": math.pi/180 * 51.5,
-                "right_index_DIP": math.pi/180 * 30.2,
-                "right_middle_MCP_FE": math.pi/180 * 18.7,
-                "right_middle_MCP_AA": math.pi/180 * -2.4,
-                "right_middle_PIP": math.pi/180 * 41.8,
-                "right_middle_DIP": math.pi/180 * 45.1,
-                "right_ring_MCP_FE": math.pi/180 * 12.1,
-                "right_ring_MCP_AA": math.pi/180 * 5.2,
-                "right_ring_PIP": math.pi/180 * 53.9,
-                "right_ring_DIP": math.pi/180 * 33.2,
-                "right_pinky_CMC": math.pi/180 * 13.4,
-                "right_pinky_MCP_FE": math.pi/180 * 36.3,
-                "right_pinky_MCP_AA": math.pi/180 * 16.3,
-                "right_pinky_PIP": math.pi/180 * 60.9,
-                "right_pinky_DIP": math.pi/180 * 35.1,
+                "right_thumb_CMC_FE": math.pi/180 * 0.0,
+                "right_thumb_CMC_AA": math.pi/180 * 0.0,
+                "right_thumb_MCP_FE": math.pi/180 * 0.0,
+                "right_thumb_MCP_AA": math.pi/180 * 0.0,
+                "right_thumb_IP": math.pi/180 * 0.0,
+                "right_index_MCP_FE": math.pi/180 * 0.0, 
+                "right_index_MCP_AA": math.pi/180 * 0.0,
+                "right_index_PIP": math.pi/180 * 0.0,
+                "right_index_DIP": math.pi/180 * 0.0,
+                "right_middle_MCP_FE": math.pi/180 * 0.0,
+                "right_middle_MCP_AA": math.pi/180 * 0.0,
+                "right_middle_PIP": math.pi/180 * 0.0,
+                "right_middle_DIP": math.pi/180 * 0.0,
+                "right_ring_MCP_FE": math.pi/180 * 0.0,
+                "right_ring_MCP_AA": math.pi/180 * 0.0,
+                "right_ring_PIP": math.pi/180 * 0.0,
+                "right_ring_DIP": math.pi/180 * 0.0,
+                "right_pinky_CMC": math.pi/180 * 0.0,
+                "right_pinky_MCP_FE": math.pi/180 * 0.0,
+                "right_pinky_MCP_AA": math.pi/180 * 0.0,
+                "right_pinky_PIP": math.pi/180 * 0.0,
+                "right_pinky_DIP": math.pi/180 * 0.0,
             },
         ),
         actuators={
@@ -131,35 +118,35 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             prim_path="/World/envs/env_.*/Robot/right_thumb_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
-            filter_prim_paths_expr=["/World/envs/env_.*/object"],
+            max_contact_data_count_per_prim=100,
+            filter_prim_paths_expr=["/World/envs/env_.*/object/"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_index_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_middle_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_ring_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_pinky_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         # DP
@@ -226,10 +213,10 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/cylinder/cylinder.usd",
+            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/tactile_align_tool/tactile_align_tool.usda",
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=False,
-                disable_gravity=False,
+                kinematic_enabled=True,
+                disable_gravity=True,
                 enable_gyroscopic_forces=True,
                 solver_position_iteration_count=8,
                 solver_velocity_iteration_count=0,
@@ -242,19 +229,14 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
                 contact_offset=0.002, 
                 rest_offset=0.0
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
             scale=(1., 1., 1.),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.5), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=False)
-    # event
-    events: EventCfg = EventCfg()
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=True)
     # reset
-    reset_height_lower = 0.635
-    reset_height_upper = 0.645
-    reset_angle_diff = 10 / 180 * math.pi
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None
@@ -277,7 +259,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_com = False
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01
-    randomize_mass = True
+    randomize_mass = False
     randomize_mass_lower = 0.05
     randomize_mass_upper = 0.051
     # random forces applied to the object
@@ -287,3 +269,22 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     force_decay_interval = 0.08
     # curriculum
     gravity_curriculum = False
+    # action_sequence
+    action_sequence_joint = [
+        "right_thumb_CMC_FE",
+        "right_thumb_MCP_FE",
+        "right_thumb_IP",
+        "right_index_MCP_FE",
+        "right_index_PIP",
+        "right_index_DIP",
+        "right_middle_MCP_FE",
+        "right_middle_PIP",
+        "right_middle_DIP",
+        "right_ring_MCP_FE",
+        "right_ring_PIP",
+        "right_ring_DIP",
+        "right_pinky_MCP_FE",
+        "right_pinky_PIP",
+        "right_pinky_DIP",
+    ]
+    action_sequence = [0.0, 15.0, 30.0, 45.0, 60.0]

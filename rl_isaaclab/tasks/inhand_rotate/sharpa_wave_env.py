@@ -18,7 +18,7 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.sensors import ContactSensor
-from isaaclab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul, axis_angle_from_quat, saturate
+from isaaclab.utils.math import quat_conjugate, quat_mul, axis_angle_from_quat, saturate
 
 if TYPE_CHECKING:
     from .sharpa_wave_env_cfg import SharpaWaveEnvCfg
@@ -405,18 +405,6 @@ def unscale(x, lower, upper):
     return (2.0 * x - upper - lower) / (upper - lower)
 
 @torch.jit.script
-def randomize_rotation(rand0, rand1, x_unit_tensor, y_unit_tensor):
-    return quat_mul(
-        quat_from_angle_axis(rand0 * torch.pi, x_unit_tensor), quat_from_angle_axis(rand1 * torch.pi, y_unit_tensor)
-    )
-
-@torch.jit.script
-def rotation_distance(object_rot, target_rot):
-    # Orientation alignment for the cube in hand and goal cube
-    quat_diff = quat_mul(object_rot, quat_conjugate(target_rot))
-    return 2.0 * torch.asin(torch.clamp(torch.norm(quat_diff[:, 1:4], p=2, dim=-1), max=1.0))  # changed quat convention
-
-@torch.jit.script
 def compute_rewards(
     rotate_reward: torch.Tensor, rotate_reward_scale: float,
     object_linvel_penalty: torch.Tensor, object_linvel_penalty_scale: float,
@@ -432,12 +420,6 @@ def compute_rewards(
     reward += work_penalty * work_penalty_scale
     reward += object_pos_diff * object_pos_reward_scale
     return reward
-
-@torch.jit.script
-def quat_to_rot(quaternion: torch.Tensor):
-    quaternion = quaternion / torch.norm(quaternion, dim=-1, keepdim=True)
-    angle = 2 * torch.acos(quaternion[:, 0])
-    return angle
 
 @torch.jit.script
 def angle_between_axis_and_z(quat: torch.Tensor, eps: float = 1.0e-6) -> torch.Tensor:

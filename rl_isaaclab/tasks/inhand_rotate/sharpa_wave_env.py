@@ -85,7 +85,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # grasp_cache
         if self.cfg.grasp_cache_path:
-            self.saved_grasping_states = torch.from_numpy(np.load(self.cfg.grasp_cache_path)).float().to(self.device)
+            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.num_envs}")).float().to(self.device)
         else:
             self.saved_grasping_states = None
 
@@ -353,7 +353,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             mask = torch.where(mask < self.cfg.contact_sensor_noise, 0.0, 1.0)
             sensed_contacts = torch.where(self.last_contacts > 0.1, mask * self.last_contacts, self.last_contacts)
         else:
-            smooth_contact_forces = transform_between_frames(smooth_contact_forces, world_quat, tactile_frame_quat)
             latency_samples = torch.rand_like(self.last_contacts)
             latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
             self.last_contacts = self.last_contacts * latency + smooth_contact_forces * (1 - latency)
@@ -363,10 +362,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         not_contact_mask = sensed_contacts < 1.0e-6
         contact_mask = ~not_contact_mask
 
-        contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :] for id in self._contact_body_ids], dim=1)
+        contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :].unsqueeze(1) for id in self._contact_body_ids], dim=1)
         contact_pos = torch.nan_to_num(contact_pos, nan=0.0)
         contact_pos[contact_mask, :] = transform_between_frames(contact_pos[contact_mask, :] - tactile_frame_pos[contact_mask, :], world_quat[contact_mask, :], tactile_frame_quat[contact_mask, :])
         contact_pos[not_contact_mask, :] = 0.0
+        contact_pos = contact_pos.reshape(self.num_envs, -1)
 
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()

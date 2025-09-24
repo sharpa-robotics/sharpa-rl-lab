@@ -270,7 +270,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.001
     # grasp cache
-    grasp_cache_path = 'cache/sharpa_grasp_linspace_16384.npy'
+    grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise
     joint_noise_scale = 0.02
     # contact

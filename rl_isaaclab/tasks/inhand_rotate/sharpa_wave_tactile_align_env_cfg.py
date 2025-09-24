@@ -8,7 +8,7 @@ import math
 import isaaclab.sim as sim_utils
 import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
-from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg, IdealPDActuatorCfg
+from isaaclab.actuators.actuator_cfg import IdealPDActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg

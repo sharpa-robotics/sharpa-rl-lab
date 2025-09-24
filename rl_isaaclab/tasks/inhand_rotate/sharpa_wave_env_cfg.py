@@ -8,7 +8,7 @@ import math
 import isaaclab.sim as sim_utils
 import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
-from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab.actuators.actuator_cfg import IdealPDActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.managers import EventTermCfg, SceneEntityCfg
 from isaaclab.sensors import ContactSensorCfg
@@ -115,7 +115,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             },
         ),
         actuators={
-            "joints": ImplicitActuatorCfg(
+            "joints": IdealPDActuatorCfg(
                 joint_names_expr=[".*"],
                 stiffness=None,
                 damping=None,
@@ -278,7 +278,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_latency = 0.005
     contact_sensor_noise = 0.01
     # align real
-    current_coef = 0.5
+    current_coef = 0.7
     # randomize
     randomize_pd_gains = True
     randomize_p_gain_scale_lower = 0.5

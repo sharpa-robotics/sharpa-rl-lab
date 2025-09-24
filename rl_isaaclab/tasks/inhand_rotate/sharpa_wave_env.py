@@ -97,6 +97,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._contact_body_ids_disable = torch.tensor([], dtype=torch.long)
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
 
+        # align real
+        self.hand.actuators['joints'].effort_limit *= self.cfg.current_coef
+
         # randomize
         if self.cfg.randomize_friction:
             rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)

@@ -8,7 +8,7 @@ import math
 import isaaclab.sim as sim_utils
 import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
-from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg, IdealPDActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.scene import InteractiveSceneCfg
@@ -19,7 +19,7 @@ from isaaclab.utils import configclass
 @configclass
 class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 12
+    episode_length_s = 12.0
     action_space = 22
     observation_space = 192
     prop_hist_len = 30
@@ -27,7 +27,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     state_space = 0
     asymmetric_obs = False
     # control
-    decimation = 240
+    decimation = 60
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24
@@ -50,7 +50,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -102,9 +102,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             },
         ),
         actuators={
-            "fingers": ImplicitActuatorCfg(
+            "joints": IdealPDActuatorCfg(
                 joint_names_expr=[".*"],
-                # effort_limit_sim=20.0,
                 stiffness=None,
                 damping=None,
             ),
@@ -119,7 +118,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             history_length=3,
             track_contact_points=True,
             max_contact_data_count_per_prim=100,
-            filter_prim_paths_expr=["/World/envs/env_.*/object/"],
+            filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_index_elastomer",
@@ -213,7 +212,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/tactile_align_tool/tactile_align_tool.usda",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/tactile_align_tool/tactile_align_tool.usda",
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
                 disable_gravity=True,
@@ -247,6 +246,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_threshold = 0.2
     contact_latency = 0.005
     contact_sensor_noise = 0.01
+    # align real
+    current_coef = 0.7
     # randomize
     randomize_pd_gains = False
     randomize_p_gain_scale_lower = 0.5

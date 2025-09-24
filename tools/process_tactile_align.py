@@ -42,10 +42,8 @@ joint_name2finger = {
     "right_pinky_DIP": 4,
 }
 
-sim_data_id = 0
-
-sim_pos_diff = sim_pos_diff[sim_data_id]
-sim_tactile_info = sim_tactile_info[sim_data_id]
+sim_pos_diff = np.mean(sim_pos_diff, axis=0)
+sim_tactile_info = np.mean(sim_tactile_info, axis=0)
 real_pos_diff = real_pos_diff[0]
 real_tactile_info = real_tactile_info[0]
 
@@ -54,9 +52,11 @@ fig, axes = plt.subplots(3, 5, figsize=(15, 9))
 for joint_name, joint_id in action_sequence_joint.items():
     ax = axes.flat[fig_id]
     ax.set_title(f"{joint_name}")
-    ax.plot(sim_pos_diff[fig_id*5:fig_id*5+5, joint_id[0]], sim_tactile_info[fig_id*5:fig_id*5+5, joint_name2finger[joint_name], 2], label='sim') 
-    ax.plot(real_pos_diff[fig_id*5:fig_id*5+5, joint_id[1]], real_tactile_info[fig_id*5:fig_id*5+5, joint_name2finger[joint_name], 2], label='real')
+    ax.plot(sim_pos_diff[fig_id*5:fig_id*5+5, joint_id[0]], np.linalg.norm(sim_tactile_info[fig_id*5:fig_id*5+5, joint_name2finger[joint_name], :3], axis=-1), label='sim') 
+    ax.plot(real_pos_diff[fig_id*5:fig_id*5+5, joint_id[1]], np.linalg.norm(real_tactile_info[fig_id*5:fig_id*5+5, joint_name2finger[joint_name], :3], axis=-1), label='real')
     ax.legend()
+    ax.set_xlabel('pos_diff')
+    ax.set_ylabel('f_norm')
     fig_id += 1
 plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.show()

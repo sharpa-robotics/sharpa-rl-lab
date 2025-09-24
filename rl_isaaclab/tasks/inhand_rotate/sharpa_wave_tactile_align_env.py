@@ -80,7 +80,6 @@ class SharpaWaveInhandRotateTactileAlignEnv(SharpaWaveInhandRotateEnv):
             return reset_empty, reset_empty
     
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        print(self.hand.joint_names)
         super()._pre_physics_step(actions)
         targets = torch.zeros_like(self.cur_targets)
         if self.cfg.action_sequence_joint[self.action_joint_id] == 'right_thumb_CMC_FE':

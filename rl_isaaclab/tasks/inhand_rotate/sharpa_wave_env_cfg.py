@@ -63,7 +63,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -115,9 +115,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             },
         ),
         actuators={
-            "fingers": ImplicitActuatorCfg(
+            "joints": ImplicitActuatorCfg(
                 joint_names_expr=[".*"],
-                # effort_limit_sim=20.0,
                 stiffness=None,
                 damping=None,
             ),
@@ -131,35 +130,35 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             prim_path="/World/envs/env_.*/Robot/right_thumb_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_index_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_middle_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_ring_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         ContactSensorCfg(
             prim_path="/World/envs/env_.*/Robot/right_pinky_elastomer",
             history_length=3,
             track_contact_points=True,
-            max_contact_data_count_per_prim=10,
+            max_contact_data_count_per_prim=100,
             filter_prim_paths_expr=["/World/envs/env_.*/object"],
         ),
         # DP
@@ -278,6 +277,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_threshold = 0.2
     contact_latency = 0.005
     contact_sensor_noise = 0.01
+    # align real
+    current_coef = 0.5
     # randomize
     randomize_pd_gains = True
     randomize_p_gain_scale_lower = 0.5

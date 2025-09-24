@@ -24,7 +24,7 @@ class EventCfg:
         func=randomize_rigid_body_scale,
         mode="prestartup",
         params={
-            "scale_range": [0.6, 0.85],
+            "scale_range": [0.65, 0.85],
             "asset_cfg": SceneEntityCfg("object"),
         },
     )
@@ -254,7 +254,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # reset
     reset_height_lower = 0.635
     reset_height_upper = 0.645
-    reset_angle_diff = 10 / 180 * math.pi
+    reset_angle_diff = 15 / 180 * math.pi
     rot_axis = (0, 0, 1)
     # grasp cache
     grasp_cache_path = None

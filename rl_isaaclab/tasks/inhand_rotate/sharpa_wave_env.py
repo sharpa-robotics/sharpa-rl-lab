@@ -85,7 +85,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # grasp_cache
         if self.cfg.grasp_cache_path:
-            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.num_envs}")).float().to(self.device)
+            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.num_envs}.npy")).float().to(self.device)
         else:
             self.saved_grasping_states = None
 

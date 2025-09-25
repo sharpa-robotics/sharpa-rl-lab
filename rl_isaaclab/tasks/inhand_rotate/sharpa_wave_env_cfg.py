@@ -20,14 +20,15 @@ from rl_isaaclab.utils.modified_events import randomize_rigid_body_scale
 
 @configclass
 class EventCfg:
-    randomize_scale = EventTermCfg(
-        func=randomize_rigid_body_scale,
-        mode="prestartup",
-        params={
-            "scale_range": [0.65, 0.85],
-            "asset_cfg": SceneEntityCfg("object"),
-        },
-    )
+    def rand_params(self, scale_range: list[float, float, int]):
+        self.randomize_scale = EventTermCfg(
+            func=randomize_rigid_body_scale,
+            mode="prestartup",
+            params={
+                "scale_range": scale_range,
+                "asset_cfg": SceneEntityCfg("object"),
+            },
+        )
 
 
 @configclass
@@ -282,6 +283,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # align real
     current_coef = 0.7
     # randomize
+    scale_range=[0.65, 0.85, 32]
+    events.rand_params(scale_range)
     randomize_pd_gains = True
     randomize_p_gain_scale_lower = 0.5
     randomize_p_gain_scale_upper = 2

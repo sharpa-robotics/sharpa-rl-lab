@@ -5,6 +5,7 @@
 
 
 from __future__ import annotations
+import math
 
 import numpy as np
 import torch
@@ -84,8 +85,14 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
                 act.damping = torch.zeros_like(act.damping, device=self.device)
 
         # grasp_cache
+        if self.num_envs % self.cfg.scale_range[2] != 0:
+            carb.log_error(f"num_envs must be divisible by scale num: {self.cfg.scale_range[2]}")
+            exit()
+        scale_ids = torch.linspace(0, self.cfg.scale_range[2]-1, self.cfg.scale_range[2], device=self.device, dtype=torch.int32).reshape(-1, 1)
+        scale_ids = scale_ids.repeat(1, math.ceil(self.num_envs/self.cfg.scale_range[2]))
+        self.scale_ids = scale_ids.reshape(-1, 1)[:self.num_envs]
         if self.cfg.grasp_cache_path:
-            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.num_envs}.npy")).float().to(self.device)
+            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.cfg.scale_range[0]}-{self.cfg.scale_range[1]}-{self.cfg.scale_range[2]}.npy")).float().to(self.device)
         else:
             self.saved_grasping_states = None
 

@@ -1,23 +1,16 @@
 from __future__ import annotations
 
 import math
-import re
 import torch
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
-import carb
-import omni.physics.tensors.impl.api as physx
-from isaacsim.core.utils.extensions import enable_extension
 from isaacsim.core.utils.stage import get_current_stage
 from pxr import Gf, Sdf, UsdGeom, Vt
 
 import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
-from isaaclab.actuators import ImplicitActuator
-from isaaclab.assets import Articulation, DeformableObject, RigidObject
-from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
-from isaaclab.terrains import TerrainImporter
-from isaaclab.utils.version import compare_versions
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
@@ -90,8 +83,9 @@ def randomize_rigid_body_scale(
         ranges = torch.tensor(range_list, device="cpu")
         rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device="cpu")
     elif isinstance(scale_range, list):
-        rand_samples = torch.linspace(scale_range[0], scale_range[1], len(env_ids), device="cpu")
-        rand_samples = rand_samples.reshape((len(env_ids), 1))
+        rand_samples = torch.linspace(scale_range[0], scale_range[1], scale_range[2], device="cpu").reshape(-1, 1)
+        rand_samples = rand_samples.repeat(1, math.ceil(len(env_ids)/scale_range[2]))
+        rand_samples = rand_samples.reshape(-1, 1)[:len(env_ids)]
         rand_samples = rand_samples.repeat(1, 3)
     else:
         rand_samples = math_utils.sample_uniform(*scale_range, (len(env_ids), 1), device="cpu")

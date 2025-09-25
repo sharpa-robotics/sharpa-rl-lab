@@ -21,8 +21,7 @@ from .sharpa_wave_env import SharpaWaveInhandRotateEnv
 class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
     def __init__(self, cfg: SharpaWaveEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
-        self.saved_grasping_states = torch.zeros((self.num_envs, 29), dtype=torch.float32, device=self.device)
-        self.saved_length = torch.zeros((self.num_envs,), dtype=torch.float32, device=self.device)
+        self.saved_grasping_states = [torch.zeros((0, 29), dtype=torch.float32, device=self.device) for _ in range(self.cfg.scale_range[2])]
         self.gravity_id = 0
         self.gravity_all_directions = [
             carb.Float3(0.0, 0.0, 9.81),
@@ -53,13 +52,25 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
 
         self._refresh_lab()
         success = self.episode_length_buf == self.max_episode_length - 1
-        all_states = torch.cat([self.hand_dof_pos, self.object_pos, self.object_rot], dim=1)
-        self.saved_grasping_states[success] = all_states[success].clone()
-        print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size:', torch.sum(self.saved_length))
-        self.saved_length[success] = 1
-        if torch.sum(self.saved_length) == self.num_envs:
-            name = f'cache/sharpa_grasp_linspace_{self.num_envs}.npy'
-            np.save(name, self.saved_grasping_states.cpu().numpy())
+        all_states = torch.cat([self.hand_dof_pos, self.object_pos, self.object_rot], dim=1)[success]
+        saved_scale_ids = self.scale_ids[success]
+        sum_total = 0
+        finish_scale = 0
+        for id, saved_scale_id in enumerate(saved_scale_ids):
+            if self.saved_grasping_states[saved_scale_id].shape[0] < 5e4//self.cfg.scale_range[2]:
+                self.saved_grasping_states[saved_scale_id] = torch.cat([self.saved_grasping_states[saved_scale_id], all_states[id].reshape(-1, 29)], dim=0)
+        for id, saved_grasping_states in enumerate(self.saved_grasping_states):
+            if saved_grasping_states.shape[0] >= 5e4//self.cfg.scale_range[2]:
+                finish_scale += 1
+            sum_total += saved_grasping_states.shape[0]
+        print(f'[{time.strftime("%Y-%m-%d %H:%M:%S")}] current cache size: {sum_total}, finished: {finish_scale}')
+        if finish_scale == self.cfg.scale_range[2]:
+            print('done!')
+            save_data = torch.zeros((0, 29), dtype=torch.float32, device=self.device)
+            for saved_grasping_states in self.saved_grasping_states:
+                save_data = torch.cat([save_data, saved_grasping_states], dim=0)
+            name = f'cache/sharpa_grasp_linspace_{self.cfg.scale_range[0]}-{self.cfg.scale_range[1]}-{self.cfg.scale_range[2]}.npy'
+            np.save(name, save_data.cpu().numpy())
             exit()
 
         self.scene.reset(env_ids)

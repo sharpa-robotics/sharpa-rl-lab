@@ -1,54 +1,28 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-"""Script to train RL agent with Gym-Style agent."""
-
-"""Launch Isaac Sim Simulator first."""
-
 import argparse
-import sys
-
-from isaaclab.app import AppLauncher
+import importlib
+import os
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Train an RL agent.")
-parser.add_argument("--num_envs", type=int, default=16, help="Number of environments to simulate.")
+parser = argparse.ArgumentParser(description="Deploy an RL agent.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=42, help="Seed used for the environment")
 parser.add_argument("--cache", type=str, default=None, help="Cache path.")
 parser.add_argument("--load_path", type=str, default=None, help="Checkpoint path.")
-parser.add_argument("--max_agent_steps", type=int, default=None, help="RL Policy training iterations.")
-parser.add_argument("--algorithm", type=str, default=None, help="Run training with multiple GPUs or nodes.")
-parser.add_argument("--resume", action="store_true", default=False, help="Resume training from checkpoint.")
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--device", type=str, default='cuda:0', help="Device to use for training.")
+
 args_cli, hydra_args = parser.parse_known_args()
 
-# clear out sys.argv for Hydra
-sys.argv = [sys.argv[0]] + hydra_args
-
-# launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
-
-"""Rest everything follows."""
-
 import gymnasium as gym
-import os
+from omegaconf import OmegaConf
 import torch
 from datetime import datetime
 
 from rl_isaaclab.algo.ppo.ppo import PPO
 from rl_isaaclab.algo.padapt.padapt import ProprioAdapt
-from rl_isaaclab.wrapper.sharpa_wave_env_wrapper import GymStyleEnvWrapper
+from rl_isaaclab.wrapper.sharpa_wave_deploy_env_wrapper import GymStyleEnvWrapper
 from rl_isaaclab.wrapper.config_wrapper import ConfigWrapper
 
-from isaaclab.envs import DirectRLEnvCfg
-
 import rl_isaaclab.tasks.inhand_rotate
-from isaaclab_tasks.utils.hydra import hydra_task_config
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
@@ -57,23 +31,47 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-@hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
-def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
-    """Train with Gym-Style agent."""
-    env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
-    agent_cfg["algorithm"]["max_agent_steps"] = args_cli.max_agent_steps if args_cli.max_agent_steps is not None else agent_cfg["algorithm"]["max_agent_steps"]
+
+def parse_entry_point(entry_point: str):
+    module, target = entry_point.split(":")
+
+    # case 1: Python class
+    if target.endswith("Cfg") or target[0].isupper():
+        mod = importlib.import_module(module)
+        cfg_class = getattr(mod, target)
+        return cfg_class()
+
+    # case 2: YAML config
+    if target.endswith(".yaml") or target.endswith(".yml"):
+        mod = importlib.import_module(module)
+        base_dir = os.path.dirname(mod.__file__)
+        config_path = os.path.join(base_dir, target)
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+        return OmegaConf.load(config_path)
+    raise ValueError(f"Unsupported entry_point format: {entry_point}")
+
+def custom_task_config(task_id):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            spec = gym.spec(task_id)
+            env_cfg_entry_point = spec.kwargs.get("env_cfg_entry_point", None)
+            agent_cfg_entry_point = spec.kwargs.get("gym_style_cfg_entry_point", None)
+            env_cfg = parse_entry_point(env_cfg_entry_point)
+            agent_cfg = parse_entry_point(agent_cfg_entry_point)
+            func(env_cfg, agent_cfg)
+        return wrapper
+    return decorator
+
+@custom_task_config(args_cli.task)
+def main(env_cfg, agent_cfg: dict):
+    """Deploy with Gym-Style agent."""
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.seed = agent_cfg["seed"]
-    env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]
-    agent_cfg["algo"] = args_cli.algorithm if args_cli.algorithm is not None else agent_cfg["algo"]
+    env_cfg.device = agent_cfg["device"]
+    agent_cfg["algo"] = 'ProprioAdapt'
     agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
-    env_cfg.randomize_pd_gains = False
-    env_cfg.randomize_friction = False
-    env_cfg.randomize_com = False
-    env_cfg.randomize_mass = False
-    env_cfg.sim.gravity = (0, 0, -9.81)
-    env_cfg.gravity_curriculum = False
     env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
 
@@ -93,13 +91,19 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
     agent.restore_test(resume_path)
-    agent.test()
+    agent.set_eval()
+    obs_dict = agent.env.reset()
+    while True:
+        input_dict = {
+            'obs': agent.running_mean_std(obs_dict['policy']),
+            'proprio_hist': agent.sa_mean_std(obs_dict['proprio_hist'].detach()),
+        }
+        mu = agent.model.act_inference(input_dict)
+        mu = torch.clamp(mu, -1.0, 1.0)
+        mu[:] = 0
+        obs_dict, r, done, info = agent.env.step(mu)
 
-    # close the simulator
-    env.close()
 
 if __name__ == "__main__":
     # run the main function
     main()
-    # close sim app
-    simulation_app.close()

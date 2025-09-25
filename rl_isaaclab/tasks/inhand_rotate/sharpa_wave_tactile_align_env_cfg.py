@@ -6,7 +6,6 @@
 import math
 
 import isaaclab.sim as sim_utils
-import isaaclab.envs.mdp as mdp
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.actuators.actuator_cfg import IdealPDActuatorCfg
 from isaaclab.envs import DirectRLEnvCfg
@@ -50,7 +49,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
+            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -212,7 +211,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/tactile_align_tool/tactile_align_tool.usda",
+            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/tactile_align_tool/tactile_align_tool.usda",
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=True,
                 disable_gravity=True,
@@ -250,6 +249,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # align real
     current_coef = 0.7
     # randomize
+    scale_range=[0.65, 0.85, 1]
     randomize_pd_gains = False
     randomize_p_gain_scale_lower = 0.5
     randomize_p_gain_scale_upper = 2

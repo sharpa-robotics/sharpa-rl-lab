@@ -93,6 +93,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.scale_ids = scale_ids.reshape(-1, 1)[:self.num_envs]
         if self.cfg.grasp_cache_path:
             self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}_{self.cfg.scale_range[0]}-{self.cfg.scale_range[1]}-{self.cfg.scale_range[2]}.npy")).float().to(self.device)
+            self.bucket_grasp = int(self.saved_grasping_states.shape[0] / self.cfg.scale_range[2])
+            self.bucket_env = int(self.num_envs / self.cfg.scale_range[2])
         else:
             self.saved_grasping_states = None
 
@@ -178,7 +180,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         if self.cfg.torque_control:
             torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
             self.torques = torques.clone()
-            # self.torques = saturate(torques, torch.tensor(-0.5), torch.tensor(0.5)).clone()
             self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         else:
             self.hand.set_joint_position_target(self.cur_targets[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
@@ -207,7 +208,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
         angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object.data.default_root_state.clone()[:, :3], dim=-1) + 0.001)
-        # angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -227,7 +227,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['pitch'] = object_angvel[:, 1].mean()
         self.extras['yaw'] = object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
-        # self.extras['angle_diff_z'] = angle_diff_z.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -284,8 +283,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # pose cache
         if self.saved_grasping_states is not None:
-            # sampled_pose_idx = np.random.randint(self.saved_grasping_states.shape[0], size=len(env_ids))
-            sampled_pose = self.saved_grasping_states[env_ids].clone()
+            sampled_pose_idx = torch.randint(0, self.bucket_grasp, size=(self.bucket_env,))
+            saved_grasping_states_picked = torch.zeros((self.num_envs, 29), device=self.device)
+            for i in range(self.cfg.scale_range[2]):
+                saved_grasping_states_picked[i*self.bucket_env:(i+1)*self.bucket_env] = self.saved_grasping_states[i*self.bucket_grasp:(i+1)*self.bucket_grasp][sampled_pose_idx]
+            sampled_pose = saved_grasping_states_picked[env_ids].clone()
         else:
             raise RuntimeError("No saved grasping states found")
 

@@ -168,6 +168,8 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
     def _reset_idx(self, env_ids: Sequence[int] | None):
         error = self.hand.set_speed_coeff(0.1)
         error = self.hand.set_current_coeff(self.cfg.current_coef)
+        self.hand.set_joint_position([0] * 22)
+        time.sleep(3)
 
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
@@ -183,8 +185,15 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         dof_pos = sampled_pose[:, :22]
         self.prev_targets[env_ids] = dof_pos.clone()
         self.cur_targets[env_ids] = dof_pos.clone()
-
-        self.hand.set_joint_position(dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy())
+        
+        init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
+        init_joint_pos[5:] = 0.0
+        self.hand.set_joint_position(init_joint_pos)
+        time.sleep(3)
+        init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
+        self.hand.set_joint_position(init_joint_pos)
+        time.sleep(3)
+        breakpoint()
 
         self._refresh_lab()
 

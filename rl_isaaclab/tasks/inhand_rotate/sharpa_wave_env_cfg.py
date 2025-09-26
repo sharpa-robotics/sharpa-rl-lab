@@ -65,7 +65,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/sharpa_ha4/HA4_URDF_XML/src/right_sharpa_ha4/right_sharpa_ha4_overlay.usda",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -227,7 +227,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_cfg: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"/home/sharpa/sharpa_tac_rl/assets/cylinder/cylinder.usd",
+            usd_path=f"/home/renrenyuan/sharpa_tac_rl/assets/cylinder/cylinder.usd",
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -293,8 +293,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_d_gain_scale_lower = 0.5
     randomize_d_gain_scale_upper = 2
     randomize_friction = True
-    randomize_friction_lower = 0.3
-    randomize_friction_upper = 3.0
+    randomize_friction_scale_lower = 0.3
+    randomize_friction_scale_upper = 3.0
     randomize_com = True
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01

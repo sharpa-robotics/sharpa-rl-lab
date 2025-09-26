@@ -15,11 +15,13 @@ from typing import TYPE_CHECKING
 import carb
 import isaaclab.sim as sim_utils
 import omni.physics.tensors.impl.api as physx
+from isaacsim.core.utils.stage import get_current_stage
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from isaaclab.sensors import ContactSensor
 from isaaclab.utils.math import quat_conjugate, quat_mul, axis_angle_from_quat, saturate, quat_inv
+from pxr import PhysxSchema, UsdPhysics
 
 if TYPE_CHECKING:
     from .sharpa_wave_env_cfg import SharpaWaveEnvCfg
@@ -117,7 +119,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # randomize
         if self.cfg.randomize_friction:
-            rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_lower, self.cfg.randomize_friction_upper)
+            rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_scale_lower, self.cfg.randomize_friction_scale_upper)
             self.set_friction(self.hand, rand_friction, self.num_envs)
             self.set_friction(self.object, rand_friction, self.num_envs)
             self.priv_info_buf[:, 3] = rand_friction
@@ -418,8 +420,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         """Update material properties for a given asset."""
         materials = asset.root_physx_view.get_material_properties()
         value = value.reshape(self.num_envs, 1).repeat(1, materials[..., 0].shape[1])
-        materials[..., 0] = value  # Static friction.
-        materials[..., 1] = value  # Dynamic friction.
+        materials[..., 0] *= value  # Static friction.
+        materials[..., 1] *= value  # Dynamic friction.
         env_ids = torch.arange(num_envs, device="cpu")
         asset.root_physx_view.set_material_properties(materials, env_ids)
 

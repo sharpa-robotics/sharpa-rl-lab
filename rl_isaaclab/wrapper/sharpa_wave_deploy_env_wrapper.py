@@ -20,9 +20,6 @@ class GymStyleEnvWrapper(ABC):
         # modify the action space to the clip range
         self._modify_action_space()
 
-        # reset at the start since the RSL-RL runner does not call reset
-        self.env.reset()
-
     def __str__(self):
         """Returns the wrapper name and the :attr:`env` representation string."""
         return f"<{type(self).__name__}{self.env}>"

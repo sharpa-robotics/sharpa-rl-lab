@@ -256,8 +256,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_d_gain_scale_lower = 0.5
     randomize_d_gain_scale_upper = 2
     randomize_friction = False
-    randomize_friction_lower = 0.3
-    randomize_friction_upper = 3.0
+    randomize_friction_scale_lower = 0.3
+    randomize_friction_scale_upper = 3.0
     randomize_com = False
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01

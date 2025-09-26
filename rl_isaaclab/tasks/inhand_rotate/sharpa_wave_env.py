@@ -254,7 +254,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             new_gravity = carb.Float3(0.0, 0.0, 0.0)
             new_gravity[xyz] = direction * gravity_amp
             self.physics_sim_view.set_gravity(new_gravity)
-            print(f"update gravity: {new_gravity}")
+            print(f"\nupdate gravity: {new_gravity}")
         return height_reset, time_out
 
     def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):

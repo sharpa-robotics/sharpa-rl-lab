@@ -257,7 +257,14 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
                     center_pos_ch = self.tac_uv_map[ch][int(center[0]), int(center[1])]
                     contact_pos[ch] = torch.tensor(center_pos_ch[:3]) / 1000.0
         force = torch.flip(force, dims=[0]).reshape(1, -1)
+        if self.cfg.binary_contact:
+            force = torch.where(force > self.cfg.contact_threshold, 1.0, 0.0)
         contact_pos = torch.flip(contact_pos, dims=[0]).reshape(1, -1)
+        if not self.cfg.enable_contact_pos:
+            contact_pos[:] = 0.0
+        if not self.cfg.enable_tactile:
+            force[:] = 0.0
+            contact_pos[:] = 0.0
         return force, contact_pos
 
 @torch.jit.script

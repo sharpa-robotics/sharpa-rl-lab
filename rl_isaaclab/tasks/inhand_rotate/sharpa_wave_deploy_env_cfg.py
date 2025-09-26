@@ -13,3 +13,8 @@ class SharpaWaveEnvCfg:
     speed_coef = 0.5
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace_0.7-0.8-16'
+    # contact
+    enable_tactile = True
+    binary_contact = True
+    enable_contact_pos = False
+    contact_threshold = 0.2

@@ -382,7 +382,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         if not self.cfg.enable_tactile:
             contact_pos[:] = 0.0
             sensed_contacts[:] = 0.0
-        print(sensed_contacts[0], contact_pos[0])
 
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()

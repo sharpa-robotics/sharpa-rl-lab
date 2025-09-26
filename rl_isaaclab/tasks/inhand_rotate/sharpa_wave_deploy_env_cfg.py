@@ -5,7 +5,7 @@ class SharpaWaveEnvCfg:
     prop_hist_len = 30
     asymmetric_obs = False
     # control
-    decimation = 12
+    control_freq = 20
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24

@@ -52,10 +52,12 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         # joint limits
         self.hand_dof_lower_limits = torch.tensor(
             [-0.1745, -0.1745, 0.0000, -0.1745, -0.1745, -0.3491, -0.3491, -0.1745, -0.3491, -0.3491, 0.0000,
-             0.0000, -0.3491, 0.0000, -0.5236, 0.0000, 0.0000, 0.0000, 0.0000, -0.3491, 0.0000, 0.0000], device=self.device)
+             0.0000, -0.3491, 0.0000, -0.5236, 0.0000, 0.0000, 0.0000, 0.0000, -0.3491, 0.0000, 0.0000],
+        device=self.device).reshape(1, -1)
         self.hand_dof_upper_limits = torch.tensor(
             [1.5708, 1.5708, 0.2618, 1.5708, 1.9199, 0.3491, 0.3491, 1.5708, 0.3491, 0.3491, 1.7453, 
-             1.7453, 0.3491, 1.7453, 1.3963, 1.3963, 1.3963, 1.7453, 1.3963, 0.3491, 1.3963, 1.7453], device=self.device)
+             1.7453, 0.3491, 1.7453, 1.3963, 1.3963, 1.3963, 1.7453, 1.3963, 0.3491, 1.3963, 1.7453], 
+        device=self.device).reshape(1, -1)
 
         # grasp_cache
         if self.cfg.grasp_cache_path:
@@ -71,6 +73,16 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         # deform mapping
         self.tac_uv_map = [np.load('assets/tactile_ha4_map/tactileSensor_map_4F_point.npy')] * 4
         self.tac_uv_map.append(np.load('assets/tactile_ha4_map/tactileSensor_map_TH_point.npy'))
+
+        self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
+
+    def reset(self, seed, options):
+        # reset state of scene
+        indices = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
+        self._reset_idx(indices)
+
+        # return observations
+        return self._get_observations(), None
 
     def _init_hand(self):
         self.hand = self.auto_detect_hand()
@@ -108,7 +120,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if error.code != 0:
             print(f"Failed to set control mode: {error.message}")
             return False
-        error = self.hand.set_speed_coeff(self.cfg.speed_coef)
+        error = self.hand.set_speed_coeff(0.1)
         if error.code != 0:
             print(f"Failed to set speed coeff: {error.message}")
             return False
@@ -131,8 +143,8 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
 
     def _apply_action(self) -> None:
         self._refresh_lab()
-        self.cur_targets = dof_isaaclab2sharpa(self.cur_targets)
-        self.hand.set_joint_position(self.cur_targets.squeeze().cpu().numpy())
+        command = dof_isaaclab2sharpa(self.cur_targets.squeeze()).cpu().numpy()
+        self.hand.set_joint_position(command)
         self.prev_targets = self.cur_targets.clone()
 
     def _get_observations(self) -> dict:
@@ -143,25 +155,36 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             "proprio_hist": self.proprio_hist_buf,
         }
         return observations
+    
+    def step(self, action):
+        action = action.to(self.device)
+        self._pre_physics_step(action)
+        self._apply_action()
+        time.sleep(1/self.cfg.control_freq)
+        self.episode_length_buf += 1
+        self.obs_buf = self._get_observations()
+        return self.obs_buf, None, None, None, None
 
     def _reset_idx(self, env_ids: Sequence[int] | None):
+        error = self.hand.set_speed_coeff(0.1)
+        error = self.hand.set_current_coeff(self.cfg.current_coef)
+
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
         self.episode_length_buf[env_ids] = 0
 
         # pose cache
         if self.saved_grasping_states is not None:
-            sampled_pose = self.saved_grasping_states[env_ids].clone()
+            sampled_pose = self.saved_grasping_states[[self.cfg.pose_id]].clone()
         else:
             raise RuntimeError("No saved grasping states found")
 
         # reset hand
         dof_pos = sampled_pose[:, :22]
+        self.prev_targets[env_ids] = dof_pos.clone()
+        self.cur_targets[env_ids] = dof_pos.clone()
 
-        self.prev_targets[env_ids] = dof_pos
-        self.cur_targets[env_ids] = dof_pos
-
-        self.hand.set_joint_position(dof_pos.squeeze().cpu().numpy())
+        self.hand.set_joint_position(dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy())
 
         self._refresh_lab()
 
@@ -170,18 +193,21 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.proprio_hist_buf[env_ids] = 0
         self.at_reset_buf[env_ids] = 1
 
+        error = self.hand.set_speed_coeff(self.cfg.speed_coef)
+        error = self.hand.set_current_coeff(self.cfg.current_coef)
+
     def _refresh_lab(self):
-        self.hand_dof_pos = dof_sharpa2isaaclab(self.hand.get_states().angles)
+        self.hand_dof_pos = dof_sharpa2isaaclab(torch.tensor(self.hand.get_states().angles)).reshape(1, -1).to(self.device)
 
     def compute_observations(self):
         # contact
-        sensed_contacts, contact_pos = self.tactile.get_tactile_info()
+        sensed_contacts, contact_pos = self.get_tactile_info()
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
         cur_obs_buf = unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits).clone().unsqueeze(1)
-        cur_tar_buf = self.cur_targets[:, None]
+        cur_tar_buf = self.cur_targets.unsqueeze(1)
         cur_obs_buf = torch.cat([cur_obs_buf, cur_tar_buf], dim=-1)
-        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.clone().unsqueeze(1), contact_pos.clone().unsqueeze(1)], dim=-1)
+        cur_obs_buf = torch.cat([cur_obs_buf, sensed_contacts.unsqueeze(1), contact_pos.unsqueeze(1)], dim=-1)
         self.obs_buf_lag_history[:] = torch.cat([prev_obs_buf, cur_obs_buf], dim=1)
 
         # refill the initialized buffers
@@ -211,30 +237,28 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return centroid
 
     def get_tactile_info(self):
-        force = [None] * 5
-        contact_pos = [None] * 5
+        force = torch.zeros(5, dtype=torch.float32, device=self.device)
+        contact_pos = torch.zeros((5, 3), dtype=torch.float32, device=self.device)
+        fill_ch = [None] * 5
         while True:
-            if None not in force: break
+            if None not in fill_ch: break
             for ch in range(5):
                 ret = self.hand.fetch_tactile_frame(ch, timeout=0.1)
                 if ret is None: continue
+                fill_ch[ch] = True
                 deform_data = ret["content"].get("DEFORM")
                 deform = deform_data.reshape(240, 240).astype(np.uint8)
-                f6_data = ret["content"].get("F6")
-                force[ch] = np.linalg.norm(f6_data[:3])
+                f6_data = torch.tensor(ret["content"].get("F6"))
+                force[ch] = torch.norm(f6_data[:3])
                 _, binary = cv2.threshold(deform, 30, 255, cv2.THRESH_BINARY)
                 # get largest connected component centroid
                 center = self.largest_connected_component_centroid(binary.astype(np.uint8))
-                if center[0] is None or center[1] is None:
-                    contact_pos[ch] = np.array([np.nan, np.nan, np.nan])
-                else:
+                if center[0] is not None and center[1] is not None:
                     center_pos_ch = self.tac_uv_map[ch][int(center[0]), int(center[1])]
-                    contact_pos[ch] = np.array(center_pos_ch[:3]) / 1000.0
-        force.reverse()
-        contact_pos.reverse()
-        tactile_info = torch.cat((torch.tensor(force), torch.tensor(contact_pos)), dim=-1)
-        tactile_info = tactile_info.unsqueeze(0).unsqueeze(0)
-        return torch.tensor(force).unsqueeze(0), torch.tensor(contact_pos).unsqueeze(0)
+                    contact_pos[ch] = torch.tensor(center_pos_ch[:3]) / 1000.0
+        force = torch.flip(force, dims=[0]).reshape(1, -1)
+        contact_pos = torch.flip(contact_pos, dims=[0]).reshape(1, -1)
+        return force, contact_pos
 
 @torch.jit.script
 def scale(x, lower, upper):
@@ -259,3 +283,9 @@ def saturate(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor) -> torch
         Clamped transform of the tensor. Shape is (N, dims).
     """
     return torch.max(torch.min(x, upper), lower)
+
+def dof_isaaclab2sharpa(dof_pos):
+    return dof_pos[[4, 9, 14, 19, 21, 0, 5, 10, 15, 1, 6, 11, 16, 3, 8, 13, 18, 2, 7, 12, 17, 20]]
+
+def dof_sharpa2isaaclab(dof_pos):
+    return dof_pos[[5, 9, 17, 13, 0, 6, 10, 18, 14, 1, 7, 11, 19, 15, 2, 8, 12, 20, 16, 3, 21, 4]]

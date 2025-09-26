@@ -9,6 +9,7 @@ parser.add_argument("--seed", type=int, default=42, help="Seed used for the envi
 parser.add_argument("--cache", type=str, default=None, help="Cache path.")
 parser.add_argument("--load_path", type=str, default=None, help="Checkpoint path.")
 parser.add_argument("--device", type=str, default='cuda:0', help="Device to use for training.")
+parser.add_argument("--pose_id", type=int, default=0)
 
 args_cli, hydra_args = parser.parse_known_args()
 
@@ -70,6 +71,7 @@ def main(env_cfg, agent_cfg: dict):
     env_cfg.seed = agent_cfg["seed"]
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]
     env_cfg.device = agent_cfg["device"]
+    env_cfg.pose_id = args_cli.pose_id
     agent_cfg["algo"] = 'ProprioAdapt'
     agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
     env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
@@ -95,12 +97,10 @@ def main(env_cfg, agent_cfg: dict):
     obs_dict = agent.env.reset()
     while True:
         input_dict = {
-            'obs': agent.running_mean_std(obs_dict['policy']),
+            'obs': agent.running_mean_std(obs_dict['obs']),
             'proprio_hist': agent.sa_mean_std(obs_dict['proprio_hist'].detach()),
         }
         mu = agent.model.act_inference(input_dict)
-        mu = torch.clamp(mu, -1.0, 1.0)
-        mu[:] = 0
         obs_dict, r, done, info = agent.env.step(mu)
 
 

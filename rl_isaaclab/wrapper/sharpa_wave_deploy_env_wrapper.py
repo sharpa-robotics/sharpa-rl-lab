@@ -15,6 +15,7 @@ class GymStyleEnvWrapper(ABC):
         self.device = self.unwrapped.device
         self.prop_hist_len = self.unwrapped.cfg.prop_hist_len
         self.num_actions = self.unwrapped.num_actions
+        self.num_obs = self.unwrapped.cfg.observation_space
 
         # modify the action space to the clip range
         self._modify_action_space()
@@ -47,7 +48,7 @@ class GymStyleEnvWrapper(ABC):
     @property
     def observation_space(self) -> gym.Space:
         """Returns the :attr:`Env` :attr:`observation_space`."""
-        return self.env.observation_space
+        return torch.zeros(self.env.observation_space).reshape(1, -1)
 
     @property
     def action_space(self) -> gym.Space:
@@ -109,19 +110,12 @@ class GymStyleEnvWrapper(ABC):
         if self.clip_actions is not None:
             actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
         # record step information
-        obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
-        # compute dones for compatibility with RSL-RL
-        dones = (terminated | truncated).to(dtype=torch.long)
+        obs_dict, _, _, _, _ = self.env.step(actions)
         # move extra observations to the extras dict
         obs_dict["obs"] = obs_dict["policy"]
-        extras["observations"] = obs_dict
-        # move time out information to the extras dict
-        # this is only needed for infinite horizon tasks
-        if not self.unwrapped.cfg.is_finite_horizon:
-            extras["time_outs"] = truncated
 
         # return the step information
-        return obs_dict, rew, dones, extras
+        return obs_dict, None, None, None
     
     def zero_actions(self) -> torch.Tensor:
         return torch.zeros(self.action_space.shape, device=self.device, dtype=torch.float)

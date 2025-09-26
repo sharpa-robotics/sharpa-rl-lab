@@ -352,9 +352,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         net_contact_forces_history = torch.cat([self._contact_sensor[id].data.net_forces_w_history[:, :, 0, :].unsqueeze(2) for id in self._contact_body_ids], dim=2)
         norm_contact_forces_history = torch.norm(net_contact_forces_history, dim=-1)
         smooth_contact_forces = norm_contact_forces_history[:, 0, :] * self.cfg.contact_smooth + norm_contact_forces_history[:, 1, :] * (1 - self.cfg.contact_smooth)
+        smooth_contact_forces[:, self._contact_body_ids_disable] = 0.0
         if self.cfg.binary_contact:
             binary_contacts = torch.where(smooth_contact_forces > self.cfg.contact_threshold, 1.0, 0.0)
-            binary_contacts[:, self._contact_body_ids_disable] = 0.0
             latency_samples = torch.rand_like(self.last_contacts)
             latency = torch.where(latency_samples < self.cfg.contact_latency, 1.0, 0.0)
             self.last_contacts = self.last_contacts * latency + binary_contacts * (1 - latency)
@@ -376,6 +376,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         contact_pos[contact_mask, :] = transform_between_frames(contact_pos[contact_mask, :] - tactile_frame_pos[contact_mask, :], world_quat[contact_mask, :], tactile_frame_quat[contact_mask, :])
         contact_pos[not_contact_mask, :] = 0.0
         contact_pos = contact_pos.reshape(self.num_envs, -1)
+        if not self.cfg.enable_contact_pos:
+            contact_pos[:] = 0.0
+
+        if not self.cfg.enable_tactile:
+            contact_pos[:] = 0.0
+            sensed_contacts[:] = 0.0
+        print(sensed_contacts[0], contact_pos[0])
 
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()

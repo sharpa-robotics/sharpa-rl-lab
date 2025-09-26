@@ -211,6 +211,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
     def compute_observations(self):
         # contact
         sensed_contacts, contact_pos = self.get_tactile_info()
+        print(sensed_contacts)
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
         cur_obs_buf = unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits).clone().unsqueeze(1)

@@ -1,5 +1,6 @@
 class SharpaWaveEnvCfg:
     # env
+    hand_side = 1
     action_space = 22
     observation_space = 192
     prop_hist_len = 30

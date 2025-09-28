@@ -92,28 +92,28 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             pos=(0.0, 0.0, 0.5),
             rot=(0.8660254, 0.0, -0.5, 0.0),
             joint_pos={
-                "right_thumb_CMC_FE": math.pi/180 * 98.3,
-                "right_thumb_CMC_AA": math.pi/180 * -20.0,
-                "right_thumb_MCP_FE": math.pi/180 * 29.0,
-                "right_thumb_MCP_AA": math.pi/180 * 11.3,
-                "right_thumb_IP": math.pi/180 * 25.6,
-                "right_index_MCP_FE": math.pi/180 * 48.4, 
-                "right_index_MCP_AA": math.pi/180 * -4.6,
-                "right_index_PIP": math.pi/180 * 51.5,
-                "right_index_DIP": math.pi/180 * 30.2,
-                "right_middle_MCP_FE": math.pi/180 * 18.7,
-                "right_middle_MCP_AA": math.pi/180 * -2.4,
-                "right_middle_PIP": math.pi/180 * 41.8,
-                "right_middle_DIP": math.pi/180 * 45.1,
-                "right_ring_MCP_FE": math.pi/180 * 12.1,
-                "right_ring_MCP_AA": math.pi/180 * 5.2,
-                "right_ring_PIP": math.pi/180 * 53.9,
-                "right_ring_DIP": math.pi/180 * 33.2,
-                "right_pinky_CMC": math.pi/180 * 13.4,
-                "right_pinky_MCP_FE": math.pi/180 * 36.3,
-                "right_pinky_MCP_AA": math.pi/180 * 16.3,
-                "right_pinky_PIP": math.pi/180 * 60.9,
-                "right_pinky_DIP": math.pi/180 * 35.1,
+                "right_thumb_CMC_FE": math.pi/180 * 95.05,
+                "right_thumb_CMC_AA": math.pi/180 * -13.48,
+                "right_thumb_MCP_FE": math.pi/180 * 22.44,
+                "right_thumb_MCP_AA": math.pi/180 * -0.13,
+                "right_thumb_IP": math.pi/180 * 14.94,
+                "right_index_MCP_FE": math.pi/180 * 50.59, 
+                "right_index_MCP_AA": math.pi/180 * -4.98,
+                "right_index_PIP": math.pi/180 * 24.96,
+                "right_index_DIP": math.pi/180 * 47.43,
+                "right_middle_MCP_FE": math.pi/180 * 25.27,
+                "right_middle_MCP_AA": math.pi/180 * -3.89,
+                "right_middle_PIP": math.pi/180 * 42.43,
+                "right_middle_DIP": math.pi/180 * 13.69,
+                "right_ring_MCP_FE": math.pi/180 * 23.57,
+                "right_ring_MCP_AA": math.pi/180 * 3.76,
+                "right_ring_PIP": math.pi/180 * 34.70,
+                "right_ring_DIP": math.pi/180 * 23.95,
+                "right_pinky_CMC": math.pi/180 * 9.75,
+                "right_pinky_MCP_FE": math.pi/180 * 43.98,
+                "right_pinky_MCP_AA": math.pi/180 * 12.89,
+                "right_pinky_PIP": math.pi/180 * 27.96,
+                "right_pinky_DIP": math.pi/180 * 35.32,
             },
         ),
         actuators={
@@ -280,8 +280,11 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_d_gain_scale_lower = 0.5
     randomize_d_gain_scale_upper = 2
     randomize_friction = False
-    randomize_friction_scale_lower = 0.3
-    randomize_friction_scale_upper = 3.0
+    randomize_friction_scale_lower = 0.5
+    randomize_friction_scale_upper = 2.0
+    elastomer_base_friction = 0.8
+    metal_base_friction = 0.1
+    object_base_friction = 0.5
     randomize_com = False
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01

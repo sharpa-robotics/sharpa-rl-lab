@@ -270,6 +270,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_latency = 0.005
     contact_sensor_noise = 0.01
     # align real
+    dof_limits_scale = 0.9
     current_coef = 0.7
     # randomize
     scale_range = [0.6, 0.9, 16]

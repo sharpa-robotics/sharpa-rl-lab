@@ -68,7 +68,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         joint_pos_limits = self.hand.root_physx_view.get_dof_limits().to(self.device)
         self.hand_dof_lower_limits = joint_pos_limits[..., 0]
         self.hand_dof_upper_limits = joint_pos_limits[..., 1]
-        # self.hand_dof_upper_limits[:, 4] = torch.deg2rad(torch.tensor(95)) # important for good hand gestures
+        self.hand_dof_lower_limits *= self.cfg.dof_limits_scale
+        self.hand_dof_upper_limits *= self.cfg.dof_limits_scale
 
         self.p_gain_default = self.hand.data.default_joint_stiffness[:,self.actuated_dof_indices].clone()
         self.d_gain_default = self.hand.data.default_joint_damping[:,self.actuated_dof_indices].clone()

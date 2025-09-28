@@ -12,6 +12,7 @@ class SharpaWaveEnvCfg:
     action_scale = 1 / 24
     current_coef = 0.4
     speed_coef = 0.5
+    dof_limits_scale = 0.9
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace_0.7-0.8-16'
     # contact

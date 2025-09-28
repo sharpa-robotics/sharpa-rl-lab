@@ -255,9 +255,19 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['time_out'] = time_out.float().mean()
         if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
             xyz = torch.randint(0, 3, (1,)).item()
+            xyz = 2
             direction = torch.randint(0, 2, (1,)).item() * 2 - 1
             gravity_amp = self.physics_sim_view.get_gravity()
             gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2)) + 0.05
+            new_gravity = carb.Float3(0.0, 0.0, 0.0)
+            new_gravity[xyz] = direction * gravity_amp
+            self.physics_sim_view.set_gravity(new_gravity)
+            print(f"\nupdate gravity: {new_gravity}")
+        if self.cfg.gravity_curriculum and self.common_step_counter % 100 == 0:
+            xyz = 2
+            direction = torch.randint(0, 2, (1,)).item() * 2 - 1
+            gravity_amp = self.physics_sim_view.get_gravity()
+            gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2))
             new_gravity = carb.Float3(0.0, 0.0, 0.0)
             new_gravity[xyz] = direction * gravity_amp
             self.physics_sim_view.set_gravity(new_gravity)

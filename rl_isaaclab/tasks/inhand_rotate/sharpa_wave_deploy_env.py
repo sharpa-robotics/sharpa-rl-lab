@@ -53,11 +53,11 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.hand_dof_lower_limits = torch.tensor(
             [-0.1745, -0.1745, 0.0000, -0.1745, -0.1745, -0.3491, -0.3491, -0.1745, -0.3491, -0.3491, 0.0000,
              0.0000, -0.3491, 0.0000, -0.5236, 0.0000, 0.0000, 0.0000, 0.0000, -0.3491, 0.0000, 0.0000],
-        device=self.device).reshape(1, -1)
+        device=self.device).reshape(1, -1) * self.cfg.dof_limits_scale
         self.hand_dof_upper_limits = torch.tensor(
             [1.5708, 1.5708, 0.2618, 1.5708, 1.9199, 0.3491, 0.3491, 1.5708, 0.3491, 0.3491, 1.7453, 
              1.7453, 0.3491, 1.7453, 1.3963, 1.3963, 1.3963, 1.7453, 1.3963, 0.3491, 1.3963, 1.7453], 
-        device=self.device).reshape(1, -1)
+        device=self.device).reshape(1, -1) * self.cfg.dof_limits_scale
 
         # grasp_cache
         if self.cfg.grasp_cache_path:

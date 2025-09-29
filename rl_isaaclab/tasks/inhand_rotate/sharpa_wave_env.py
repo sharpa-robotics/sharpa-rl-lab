@@ -296,6 +296,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         
         rotate_center = self.hand.data.default_root_state.clone()[env_ids, :3]
         q_rand = get_random_rotation(env_ids, self.device)
+        self.rot_axis[env_ids] = torch.tensor(self.cfg.rot_axis, device=self.device, dtype=torch.float32)
+        self.rot_axis[env_ids] = rotate_axis_by_quat(self.rot_axis[env_ids], q_rand)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
@@ -442,7 +444,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         asset.root_physx_view.set_masses(value, env_ids)
     
     def _setup_reward_config(self):
-        self.rot_axis = torch.tensor(self.cfg.rot_axis).repeat(self.num_envs, 1).to(self.device)
+        self.rot_axis = torch.tensor(self.cfg.rot_axis, dtype=torch.float32).repeat(self.num_envs, 1).to(self.device)
 
 
 @torch.jit.script
@@ -572,3 +574,10 @@ def apply_random_rotation_with_center(
     pos_new = new_offset + center
 
     return qs_new, pos_new
+
+@torch.jit.script
+def rotate_axis_by_quat(axis: torch.Tensor, quat: torch.Tensor) -> torch.Tensor:
+    axis_q = torch.cat([torch.zeros(axis.shape[:-1] + (1,), device=axis.device), axis], dim=-1)
+    quat_conj = quat_conjugate(quat)
+    rotated_q = quat_mul(quat_mul(quat, axis_q), quat_conj)
+    return rotated_q[..., 1:]

@@ -246,14 +246,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
         height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
-        # angle_diff_z = angle_between_axis_and_z(quat_mul(self.object_rot, quat_conjugate(self.object_default_pose[:, 3: 7])))
-        # angle_reset = torch.greater(angle_diff_z, self.cfg.reset_angle_diff)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         self.extras['height_reset_upper'] = height_reset_upper.float().mean()
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
-        # self.extras['angle_reset'] = angle_reset.float().mean()
         self.extras['time_out'] = time_out.float().mean()
-        if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
+        if self.extras['time_out'] > 0.002 and self.cfg.gravity_curriculum:
             xyz = torch.randint(0, 3, (1,)).item()
             xyz = 2
             direction = torch.randint(0, 2, (1,)).item() * 2 - 1

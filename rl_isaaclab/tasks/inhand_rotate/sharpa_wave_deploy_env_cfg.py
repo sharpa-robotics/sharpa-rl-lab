@@ -10,7 +10,7 @@ class SharpaWaveEnvCfg:
     clip_obs = 5.0
     clip_actions = 1.0
     action_scale = 1 / 24
-    current_coef = 0.4
+    current_coef = 0.3
     speed_coef = 0.5
     dof_limits_scale = 0.9
     # grasp cache
@@ -20,4 +20,4 @@ class SharpaWaveEnvCfg:
     binary_contact = True
     enable_contact_pos = False
     disable_tactile_ids = []
-    contact_threshold = 0.2
+    contact_threshold = 0.1

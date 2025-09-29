@@ -29,6 +29,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     cfg: SharpaWaveEnvCfg
 
     def __init__(self, cfg: SharpaWaveEnvCfg, render_mode: str | None = None, **kwargs):
+        self.reset_height_lower = torch.zeros(cfg.scene.num_envs, device=cfg.sim.device)
+        self.reset_height_upper = torch.zeros(cfg.scene.num_envs, device=cfg.sim.device)
+
         super().__init__(cfg, render_mode, **kwargs)
 
         self.num_hand_dofs = self.hand.num_joints
@@ -241,34 +244,20 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         self._refresh_lab()
-        height_reset_upper = self.object_pos[:, 2] > self.cfg.reset_height_upper
-        height_reset_lower = self.object_pos[:, 2] < self.cfg.reset_height_lower
+        height_reset_upper = self.object_pos[:, 2] > self.reset_height_upper
+        height_reset_lower = self.object_pos[:, 2] < self.reset_height_lower
         height_reset = height_reset_upper | height_reset_lower
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         self.extras['height_reset_upper'] = height_reset_upper.float().mean()
         self.extras['height_reset_lower'] = height_reset_lower.float().mean()
         self.extras['time_out'] = time_out.float().mean()
         if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum:
-            xyz = torch.randint(0, 3, (1,)).item()
-            xyz = 2
-            direction = torch.randint(0, 2, (1,)).item() * 2 - 1
             gravity_amp = self.physics_sim_view.get_gravity()
             gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2))
-            if gravity_amp < 9.81 * 1.2:
-                gravity_amp += 0.05
-            new_gravity = carb.Float3(0.0, 0.0, 0.0)
-            new_gravity[xyz] = direction * gravity_amp
-            self.physics_sim_view.set_gravity(new_gravity)
-            print(f"\nupdate gravity: {new_gravity}")
-        if self.cfg.gravity_curriculum and self.common_step_counter % 100 == 0:
-            xyz = 2
-            direction = torch.randint(0, 2, (1,)).item() * 2 - 1
-            gravity_amp = self.physics_sim_view.get_gravity()
-            gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2))
-            new_gravity = carb.Float3(0.0, 0.0, 0.0)
-            new_gravity[xyz] = direction * gravity_amp
-            self.physics_sim_view.set_gravity(new_gravity)
-            print(f"\nupdate gravity: {new_gravity}")
+            if gravity_amp < 10:
+                new_gravity = carb.Float3(0.0, 0.0, gravity_amp - 0.05)
+                self.physics_sim_view.set_gravity(new_gravity)
+                print(f"\nupdate gravity: {new_gravity}")
         return height_reset, time_out
 
     def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):
@@ -304,19 +293,29 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             sampled_pose = saved_grasping_states_picked[env_ids].clone()
         else:
             raise RuntimeError("No saved grasping states found")
+        
+        rotate_center = self.hand.data.default_root_state.clone()[env_ids, :3]
+        q_rand = get_random_rotation(env_ids, self.device)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
         # global object positions
-        object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
-        object_default_state[:, 3:7] = sampled_pose[:, 25:29]
+        object_default_state[:, 3:7], object_default_state[:, 0:3] = apply_random_rotation_with_center(sampled_pose[:, 25:29], sampled_pose[:, 22:25], rotate_center, q_rand)
+        object_default_state[:, 0:3] += self.scene.env_origins[env_ids]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
         self.object_default_pose[env_ids] = object_default_state[:, :7]
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
         self.rb_forces[env_ids, :] = 0.0
 
+        self.reset_height_lower[env_ids] = object_default_state[:, 2] - (self.cfg.reset_height_upper - self.cfg.reset_height_lower) / 2
+        self.reset_height_upper[env_ids] = object_default_state[:, 2] + (self.cfg.reset_height_upper - self.cfg.reset_height_lower) / 2
+
         # reset hand
+        hand_default_state = self.hand.data.default_root_state.clone()[env_ids]
+        hand_default_state[:, 3:7], hand_default_state[:, 0:3] = apply_random_rotation_with_center(hand_default_state[:, 3:7], hand_default_state[:, :3], rotate_center, q_rand)
+        hand_default_state[:, 0:3] += self.scene.env_origins[env_ids]
+        self.hand.write_root_state_to_sim(hand_default_state, env_ids)
         dof_pos = sampled_pose[:, :22]
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
         self.prev_targets[env_ids] = dof_pos
@@ -526,3 +525,50 @@ def transform_between_frames(p_A: torch.Tensor, q_A: torch.Tensor,
     # p in B frame
     p_B = quat_rotate(quat_inv(q_B), p_world)
     return p_B
+
+@torch.jit.script
+def quat_to_rotmat(q: torch.Tensor) -> torch.Tensor:
+    w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    B = q.shape[0]
+    R = torch.zeros((B, 3, 3), device=q.device, dtype=q.dtype)
+
+    R[:, 0, 0] = 1 - 2 * (y * y + z * z)
+    R[:, 0, 1] = 2 * (x * y - z * w)
+    R[:, 0, 2] = 2 * (x * z + y * w)
+
+    R[:, 1, 0] = 2 * (x * y + z * w)
+    R[:, 1, 1] = 1 - 2 * (x * x + z * z)
+    R[:, 1, 2] = 2 * (y * z - x * w)
+
+    R[:, 2, 0] = 2 * (x * z - y * w)
+    R[:, 2, 1] = 2 * (y * z + x * w)
+    R[:, 2, 2] = 1 - 2 * (x * x + y * y)
+    return R
+
+@torch.jit.script
+def get_random_rotation(env_ids: torch.Tensor, device: str) -> torch.Tensor:
+    N = env_ids.shape[0]
+
+    u1 = torch.rand(N, device=device)
+    u2 = torch.rand(N, device=device) * 2.0 * torch.pi
+    u3 = torch.rand(N, device=device) * 2.0 * torch.pi
+    q1 = torch.sqrt(1.0 - u1) * torch.sin(u2)
+    q2 = torch.sqrt(1.0 - u1) * torch.cos(u2)
+    q3 = torch.sqrt(u1) * torch.sin(u3)
+    q4 = torch.sqrt(u1) * torch.cos(u3)
+    q_rand = torch.stack([q4, q1, q2, q3], dim=-1)
+
+    return q_rand
+
+@torch.jit.script
+def apply_random_rotation_with_center(
+    qs_init: torch.Tensor, pos_init: torch.Tensor, center: torch.Tensor, q_rand: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    qs_new = quat_mul(q_rand, qs_init)
+
+    R = quat_to_rotmat(q_rand)
+    offset = pos_init - center
+    new_offset = torch.bmm(R, offset.unsqueeze(-1)).squeeze(-1)
+    pos_new = new_offset + center
+
+    return qs_new, pos_new

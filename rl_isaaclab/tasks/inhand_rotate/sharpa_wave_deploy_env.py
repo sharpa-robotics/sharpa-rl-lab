@@ -211,7 +211,6 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
     def compute_observations(self):
         # contact
         sensed_contacts, contact_pos = self.get_tactile_info()
-        print(sensed_contacts)
         # deal with normal observation, do sliding window
         prev_obs_buf = self.obs_buf_lag_history[:, 1:].clone()
         cur_obs_buf = unscale(self.hand_dof_pos, self.hand_dof_lower_limits, self.hand_dof_upper_limits).clone().unsqueeze(1)
@@ -274,11 +273,13 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         force = torch.flip(force, dims=[0])
         force[self.cfg.disable_tactile_ids] = 0.0
         force = force.reshape(1, -1)
+        # print(f'contact force norm: {force}')
         if self.cfg.binary_contact:
             force = torch.where(force > self.cfg.contact_threshold, 1.0, 0.0)
         contact_pos = torch.flip(contact_pos, dims=[0])
         contact_pos[self.cfg.disable_tactile_ids, :] = 0.0
         contact_pos = contact_pos.reshape(1, -1)
+        print(f'contact force binary: {force}')
         return force, contact_pos
 
 @torch.jit.script

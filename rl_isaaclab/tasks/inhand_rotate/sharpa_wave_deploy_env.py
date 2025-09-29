@@ -275,6 +275,8 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if not self.cfg.enable_tactile:
             force[:] = 0.0
             contact_pos[:] = 0.0
+        force[0, self.cfg.disable_tactile_ids] = 0.0
+        contact_pos[0, self.cfg.disable_tactile_ids, :] = 0.0
         return force, contact_pos
 
 @torch.jit.script

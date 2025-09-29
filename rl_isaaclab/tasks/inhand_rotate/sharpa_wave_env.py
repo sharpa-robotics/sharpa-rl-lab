@@ -104,7 +104,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # contact buffers
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
-        self._contact_body_ids_disable = torch.tensor([], dtype=torch.long)
+        self._contact_body_ids_disable = torch.tensor(self.cfg.disable_tactile_ids, dtype=torch.long)
         self.last_contacts = torch.zeros((self.num_envs, len(self._contact_body_ids)), dtype=torch.float, device=self.device)
         self.elastomer_ids = [self.hand.body_names.index(body_name) for body_name in 
                               ["right_thumb_elastomer", 
@@ -380,6 +380,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # contact pos
         not_contact_mask = sensed_contacts < 1.0e-6
+        not_contact_mask[:, self._contact_body_ids_disable] = True
         contact_mask = ~not_contact_mask
 
         contact_pos = torch.cat([self._contact_sensor[id].data.contact_pos_w[:, 0, 0, :].unsqueeze(1) for id in self._contact_body_ids], dim=1)

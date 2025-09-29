@@ -215,7 +215,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # auxiliary reward
         angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
         angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
-        object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3], dim=-1) + 0.001)
+        object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] - self.scene.env_origins, dim=-1) + 0.001)
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -419,7 +419,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         obs_buf = (self.obs_buf_lag_history[:, -3:].reshape(self.num_envs, -1)).clone()
 
         self.proprio_hist_buf[:] = self.obs_buf_lag_history[:, -self.cfg.prop_hist_len:].clone()
-        self.priv_info_buf[:, 0:3] = self.object_pos - self.object_default_pose[:, :3]
+        self.priv_info_buf[:, 0:3] = self.object_pos - self.object_default_pose[:, :3] - self.scene.env_origins
 
         return obs_buf
     

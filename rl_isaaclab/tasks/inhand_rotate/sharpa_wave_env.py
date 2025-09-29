@@ -314,7 +314,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_default_state[:, 3:7] = sampled_pose[:, 25:29]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
         self.object_default_pose[env_ids] = object_default_state[:, :7]
-
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
         self.rb_forces[env_ids, :] = 0.0
@@ -322,15 +321,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # reset hand
         dof_pos = sampled_pose[:, :22]
         dof_vel = torch.zeros_like(self.hand.data.default_joint_vel[env_ids])
-
         self.prev_targets[env_ids] = dof_pos
         self.cur_targets[env_ids] = dof_pos
-
         self.hand.set_joint_position_target(dof_pos, env_ids=env_ids)
         self.hand.write_joint_state_to_sim(dof_pos, dof_vel, env_ids=env_ids)
-
         self._refresh_lab()
-
         self.object_pos_prev[env_ids] = self.object_pos[env_ids]
         self.object_rot_prev[env_ids] = self.object_rot[env_ids]
 

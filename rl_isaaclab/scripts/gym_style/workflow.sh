@@ -1,0 +1,2 @@
+python rl_isaaclab/scripts/gym_style/gen_grasp.py --task Isaac-Inhand-Rotate-Grasp-Sharpa-Wave-v0 --headless --num_envs 16384
+python rl_isaaclab/scripts/gym_style/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --headless --num_envs 16384

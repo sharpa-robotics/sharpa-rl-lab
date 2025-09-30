@@ -276,7 +276,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     joint_noise_scale = 0.02
     # contact
     enable_tactile = True
-    binary_contact = True
+    binary_contact = False
     enable_contact_pos = False
     disable_tactile_ids = []
     contact_smooth = 0.1

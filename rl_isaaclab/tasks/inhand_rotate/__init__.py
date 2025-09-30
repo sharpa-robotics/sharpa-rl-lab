@@ -14,6 +14,7 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.sharpa_wave_env_cfg:SharpaWaveEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:SharpaWavePPORunnerCfg",
         "gym_style_cfg_entry_point": f"{agents.__name__}:gym_style_ppo_cfg.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
     },
 )
 
@@ -25,6 +26,7 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.sharpa_wave_grasp_env_cfg:SharpaWaveEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:SharpaWavePPORunnerCfg",
         "gym_style_cfg_entry_point": f"{agents.__name__}:gym_style_ppo_cfg.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
     },
 )
 
@@ -36,6 +38,7 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.sharpa_wave_deploy_env_cfg:SharpaWaveEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:SharpaWavePPORunnerCfg",
         "gym_style_cfg_entry_point": f"{agents.__name__}:gym_style_ppo_cfg.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
     },
 )
 
@@ -47,5 +50,6 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.sharpa_wave_tactile_align_env_cfg:SharpaWaveEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:SharpaWavePPORunnerCfg",
         "gym_style_cfg_entry_point": f"{agents.__name__}:gym_style_ppo_cfg.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
     },
 )

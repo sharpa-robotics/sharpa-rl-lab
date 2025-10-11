@@ -67,7 +67,6 @@ def custom_task_config(task_id):
 
 @custom_task_config(args_cli.task)
 def main(env_cfg, agent_cfg: dict):
-    shutil.rmtree('outputs/')
     """Deploy with Gym-Style agent."""
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.seed = agent_cfg["seed"]

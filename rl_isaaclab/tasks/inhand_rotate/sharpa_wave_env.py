@@ -64,7 +64,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.finger_bodies = list()
         for body_name in self.cfg.fingertip_body_names:
             self.finger_bodies.append(self.hand.body_names.index(body_name))
-        self.finger_bodies.sort()
         self.num_fingertips = len(self.finger_bodies)
 
         # joint limits
@@ -72,8 +71,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.hand_dof_lower_limits = joint_pos_limits[..., 0] * self.cfg.dof_limits_scale
         self.hand_dof_upper_limits = joint_pos_limits[..., 1] * self.cfg.dof_limits_scale
 
-        self.p_gain_default = self.hand.data.default_joint_stiffness[:,self.actuated_dof_indices].clone()
-        self.d_gain_default = self.hand.data.default_joint_damping[:,self.actuated_dof_indices].clone()
+        self.p_gain_default = self.hand.data.default_joint_stiffness[:, self.actuated_dof_indices].clone()
+        self.d_gain_default = self.hand.data.default_joint_damping[:, self.actuated_dof_indices].clone()
 
         self.p_gain = self.p_gain_default.clone()
         self.d_gain = self.d_gain_default.clone()
@@ -216,6 +215,12 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
         angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] + self.scene.env_origins, dim=-1) + 0.001)
+        if self.fingertip_mimic_traj_vec is not None:
+            fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
+            fingertip_vec = fingertip_vec.unsqueeze(1).repearet(1, self.num_traj_points, 1, 1)
+            fingertip_vec_diff = torch.norm(fingertip_vec - self.fingertip_mimic_traj_vec, dim=-1).sum(-1).min(-1)
+        else:
+            fingertip_vec_diff = torch.zeros_like(rotate_reward)
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -224,6 +229,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             torque_penalty, self.cfg.torque_penalty_scale,
             work_penalty, self.cfg.work_penalty_scale,
             object_pos_diff, self.cfg.object_pos_reward_scale,
+            fingertip_vec_diff, self.cfg.fingertip_mimic_penalty_scale,
         )
 
         self.extras["rotate_reward"] = rotate_reward.mean()
@@ -235,6 +241,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['pitch'] = object_angvel[:, 1].mean()
         self.extras['yaw'] = object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
+        self.extras['fingertip_vec_diff'] = fingertip_vec_diff.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -298,6 +305,17 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         q_rand = get_random_rotation(env_ids, self.device)
         self.rot_axis[env_ids] = torch.tensor(self.cfg.rot_axis, device=self.device, dtype=torch.float32)
         self.rot_axis[env_ids] = rotate_axis_by_quat(self.rot_axis[env_ids], q_rand)
+
+        # reset mimic traj
+        if self.fingertip_mimic_default_traj is not None:
+            fingertip_mimic_traj = self.fingertip_mimic_default_traj[env_ids].reshape(-1, 3)
+            fingertip_mimic_traj_fake_quat = torch.zeros((fingertip_mimic_traj.shape[0], 4), device=self.device)
+            fingertip_mimic_traj, _ = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
+                                                                        fingertip_mimic_traj, 
+                                                                        rotate_center.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3),
+                                                                        q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3))
+            fingertip_mimic_traj = fingertip_mimic_traj.reshape(len(env_ids), self.num_traj_points, self.num_fingertips, 3)
+            self.fingertip_mimic_traj_vec[env_ids] = fingertip_mimic_traj - torch.roll(fingertip_mimic_traj, shifts=1, dims=2)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
@@ -445,7 +463,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     
     def _setup_reward_config(self):
         self.rot_axis = torch.tensor(self.cfg.rot_axis, dtype=torch.float32).repeat(self.num_envs, 1).to(self.device)
-
+        if hasattr(self.cfg, "fingertip_mimic_traj"):
+            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
+            self.num_traj_points = self.fingertip_mimic_default_traj.shape[1]
+            self.fingertip_mimic_traj_vec = self.fingertip_mimic_default_traj - torch.roll(self.fingertip_mimic_default_traj, shifts=1, dims=2)
+        else:
+            self.fingertip_mimic_default_traj = None
+            self.fingertip_mimic_traj_vec = None
 
 @torch.jit.script
 def scale(x, lower, upper):
@@ -463,6 +487,7 @@ def compute_rewards(
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
     work_penalty: torch.Tensor, work_penalty_scale: float,
     object_pos_diff: torch.Tensor, object_pos_reward_scale: float,
+    fingertip_vec_diff:torch.Tensor, fingertip_mimic_penalty_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
     reward += object_linvel_penalty * object_linvel_penalty_scale
@@ -470,6 +495,7 @@ def compute_rewards(
     reward += torque_penalty * torque_penalty_scale
     reward += work_penalty * work_penalty_scale
     reward += object_pos_diff * object_pos_reward_scale
+    reward += fingertip_vec_diff * fingertip_mimic_penalty_scale
     return reward
 
 @torch.jit.script

@@ -22,4 +22,4 @@ class SharpaWaveEnvCfg:
     binary_contact = False
     enable_contact_pos = False
     disable_tactile_ids = []
-    contact_threshold = 1.0
+    contact_threshold = 0.7

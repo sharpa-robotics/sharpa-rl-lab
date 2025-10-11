@@ -88,7 +88,7 @@ for joint_name, joint_id in action_sequence_joint_same_finger.items():
     ax.plot([0, 15, 30, 45, 60], np.rad2deg(sim_pos_diff[fig_id*5:fig_id*5+5, joint_id[0][1]]), label='pip_sim')
     ax.plot([0, 15, 30, 45, 60], np.rad2deg(sim_pos_diff[fig_id*5:fig_id*5+5, joint_id[0][2]]), label='dip_sim')
     ax.legend()
-    ax.set_xlabel('pos')
+    ax.set_xlabel('tar_pos')
     ax.set_ylabel('pos_diff')
     fig_id += 1
 

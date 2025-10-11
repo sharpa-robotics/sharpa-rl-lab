@@ -24,7 +24,7 @@ from tensorboardX import SummaryWriter
 
 
 class PPO(object):
-    def __init__(self, env, output_dir, full_config):
+    def __init__(self, env, output_dir, full_config, create_output_dir=True):
         self.device = full_config.train["device"]
         self.network_config = full_config.train["network"]
         self.ppo_config = full_config.train["algorithm"]
@@ -59,8 +59,9 @@ class PPO(object):
         self.output_dir = output_dir
         self.nn_dir = os.path.join(self.output_dir, 'stage1_nn')
         self.tb_dif = os.path.join(self.output_dir, 'stage1_tb')
-        os.makedirs(self.nn_dir, exist_ok=True)
-        os.makedirs(self.tb_dif, exist_ok=True)
+        if create_output_dir:
+            os.makedirs(self.nn_dir, exist_ok=True)
+            os.makedirs(self.tb_dif, exist_ok=True)
         # ---- Optim ----
         self.last_lr = float(self.ppo_config['learning_rate'])
         self.weight_decay = self.ppo_config.get('weight_decay', 0.0)
@@ -93,8 +94,9 @@ class PPO(object):
         self.save_best_after = self.ppo_config['save_best_after']
         # ---- Tensorboard Logger ----
         self.extra_info = {}
-        writer = SummaryWriter(self.tb_dif)
-        self.writer = writer
+        if create_output_dir:
+            writer = SummaryWriter(self.tb_dif)
+            self.writer = writer
 
         self.episode_rewards = AverageScalarMeter(100)
         self.episode_lengths = AverageScalarMeter(100)

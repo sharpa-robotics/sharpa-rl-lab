@@ -9,6 +9,7 @@
 
 import argparse
 import sys
+import shutil
 
 from isaaclab.app import AppLauncher
 
@@ -59,6 +60,7 @@ torch.backends.cudnn.benchmark = False
 
 @hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
 def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
+    shutil.rmtree('outputs/')
     """Train with Gym-Style agent."""
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg["algorithm"]["max_agent_steps"] = args_cli.max_agent_steps if args_cli.max_agent_steps is not None else agent_cfg["algorithm"]["max_agent_steps"]
@@ -81,12 +83,24 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     print(f"Exact experiment name requested from command line: {log_dir}")
     log_dir = os.path.join(log_root_path, log_dir)
+    if agent_cfg["algo"] == "ProprioAdapt":
+        load_path_split = agent_cfg["load_path"].split("/")
+        if len(load_path_split) == 6:
+            print(load_path_split)
+            log_dir = os.path.join(*(load_path_split[:-2]))
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
 
     env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
     agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
+    
+    spec = gym.spec(args_cli.task)
+    env_cfg_file = spec.kwargs.get("env_cfg_entry_point", None).split(":")[0].replace(".", "/") + ".py"
+    agent_cfg_file = spec.kwargs.get("gym_style_cfg_entry_point", None).replace(".", "/").replace(":", "/").replace("/yaml", ".yaml")
+    shutil.copy(env_cfg_file, os.path.join(log_dir, "env_cfg.py"))
+    shutil.copy(agent_cfg_file, os.path.join(log_dir, "agent_cfg.yaml"))
+
     # load the checkpoint
     if args_cli.resume or agent_cfg["algo"] == "ProprioAdapt":
         resume_path = agent_cfg["load_path"]

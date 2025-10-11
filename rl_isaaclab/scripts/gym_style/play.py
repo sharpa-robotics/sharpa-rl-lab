@@ -9,6 +9,7 @@
 
 import argparse
 import sys
+import shutil
 
 from isaaclab.app import AppLauncher
 
@@ -59,6 +60,7 @@ torch.backends.cudnn.benchmark = False
 
 @hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
 def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
+    shutil.rmtree('outputs/')
     """Train with Gym-Style agent."""
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg["algorithm"]["max_agent_steps"] = args_cli.max_agent_steps if args_cli.max_agent_steps is not None else agent_cfg["algorithm"]["max_agent_steps"]
@@ -87,7 +89,8 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
     env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
-    agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
+    agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config, create_output_dir=False)
+    
     # load the checkpoint
     resume_path = agent_cfg["load_path"]
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")

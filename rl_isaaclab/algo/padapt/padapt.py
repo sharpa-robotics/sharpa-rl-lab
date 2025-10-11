@@ -18,7 +18,7 @@ from tensorboardX import SummaryWriter
 
 
 class ProprioAdapt(object):
-    def __init__(self, env, output_dir, full_config):
+    def __init__(self, env, output_dir, full_config, create_output_dir=True):
         self.device = full_config.train["device"]
         self.network_config = full_config.train["network"]
         self.ppo_config = full_config.train["algorithm"]
@@ -54,10 +54,11 @@ class ProprioAdapt(object):
         self.output_dir = output_dir
         self.nn_dir = os.path.join(self.output_dir, 'stage2_nn')
         self.tb_dir = os.path.join(self.output_dir, 'stage2_tb')
-        os.makedirs(self.nn_dir, exist_ok=True)
-        os.makedirs(self.tb_dir, exist_ok=True)
-        writer = SummaryWriter(self.tb_dir)
-        self.writer = writer
+        if create_output_dir:
+            os.makedirs(self.nn_dir, exist_ok=True)
+            os.makedirs(self.tb_dir, exist_ok=True)
+            writer = SummaryWriter(self.tb_dir)
+            self.writer = writer
         self.direct_info = {}
         # ---- Misc ----
         self.batch_size = self.num_actors

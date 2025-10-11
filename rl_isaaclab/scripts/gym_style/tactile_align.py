@@ -9,6 +9,7 @@
 
 import argparse
 import sys
+import shutil
 
 from isaaclab.app import AppLauncher
 
@@ -57,6 +58,7 @@ torch.backends.cudnn.benchmark = False
 
 @hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
 def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
+    shutil.rmtree('outputs/')
     """Train with Gym-Style agent."""
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     env_cfg.seed = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']

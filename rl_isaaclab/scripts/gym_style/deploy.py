@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import os
+import shutil
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Deploy an RL agent.")
@@ -66,6 +67,7 @@ def custom_task_config(task_id):
 
 @custom_task_config(args_cli.task)
 def main(env_cfg, agent_cfg: dict):
+    shutil.rmtree('outputs/')
     """Deploy with Gym-Style agent."""
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.seed = agent_cfg["seed"]
@@ -87,7 +89,8 @@ def main(env_cfg, agent_cfg: dict):
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
     env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
-    agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
+    agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config, create_output_dir=False)
+
     # load the checkpoint
     resume_path = agent_cfg["load_path"]
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")

@@ -182,18 +182,34 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             raise RuntimeError("No saved grasping states found")
 
         # reset hand
-        dof_pos = sampled_pose[:, :22]
-        self.prev_targets[env_ids] = dof_pos.clone()
-        self.cur_targets[env_ids] = dof_pos.clone()
-        
-        init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
-        init_joint_pos[5:] = 0.0
-        self.hand.set_joint_position(init_joint_pos)
-        time.sleep(3)
-        init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
-        self.hand.set_joint_position(init_joint_pos)
-        time.sleep(3)
-        breakpoint()
+        if self.cfg.use_grasp_cache:
+            dof_pos = sampled_pose[:, :22]
+            self.prev_targets[env_ids] = dof_pos.clone()
+            self.cur_targets[env_ids] = dof_pos.clone()
+            
+            init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
+            init_joint_pos[5:] = 0.0
+            self.hand.set_joint_position(init_joint_pos)
+            time.sleep(3)
+            init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
+            self.hand.set_joint_position(init_joint_pos)
+            time.sleep(3)
+            breakpoint()
+        else:
+            # replay traj until grasp
+            traj = np.load('cache/ini_traj.npy')
+            tactile_force, _ = self.get_tactile_info()
+            j = 0
+            self.hand.set_joint_position(traj[j])
+            while torch.max(tactile_force) < 1 and j + 3 < len(traj):
+                j += 1
+                self.hand.set_joint_position(traj[j])
+                time.sleep(0.03)
+                tactile_force, _ = self.get_tactile_info()
+                
+            print(f"pick num {j} traj in {len(traj)}")
+            self.prev_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
+            self.cur_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
 
         self._refresh_lab()
 
@@ -273,13 +289,14 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         force = torch.flip(force, dims=[0])
         force[self.cfg.disable_tactile_ids] = 0.0
         force = force.reshape(1, -1)
-        # print(f'contact force norm: {force}')
+        force *= self.cfg.force_scale
+        force[force < self.cfg.contact_threshold] = 0.0
         if self.cfg.binary_contact:
             force = torch.where(force > self.cfg.contact_threshold, 1.0, 0.0)
         contact_pos = torch.flip(contact_pos, dims=[0])
         contact_pos[self.cfg.disable_tactile_ids, :] = 0.0
         contact_pos = contact_pos.reshape(1, -1)
-        print(f'contact force binary: {force}')
+        print(f'contact force: {force}')
         return force, contact_pos
 
 @torch.jit.script

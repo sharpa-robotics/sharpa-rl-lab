@@ -217,7 +217,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] + self.scene.env_origins, dim=-1) + 0.001)
         if self.fingertip_mimic_traj_vec is not None:
             fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
-            index_expand = (self.episode_length_buf*self.mimic_traj_step+self.mimic_traj_step_offset).view(self.num_envs, 1, 1, 1).expand(-1, 1, 5, 3)
+            index_expand = (self.episode_length_buf+self.mimic_traj_step_offset).view(self.num_envs, 1, 1, 1).expand(-1, 1, 5, 3)
             fingertip_mimic_traj_vec = torch.gather(self.fingertip_mimic_traj_vec, dim=1, index=index_expand).squeeze(1)
             fingertip_vec_diff = torch.norm(fingertip_vec - fingertip_mimic_traj_vec, dim=-1).sum(-1)
         else:

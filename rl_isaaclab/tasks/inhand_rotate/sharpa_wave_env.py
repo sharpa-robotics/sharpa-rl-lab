@@ -309,19 +309,21 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # reset mimic traj
         if self.fingertip_mimic_default_traj is not None:
-            fingertip_mimic_traj = self.fingertip_mimic_default_traj[env_ids].reshape(-1, 3)
-            fingertip_mimic_traj_fake_quat = torch.zeros((fingertip_mimic_traj.shape[0], 4), device=self.device)
-            _, fingertip_mimic_traj = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
-                                                                        fingertip_mimic_traj, 
-                                                                        rotate_center.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3),
-                                                                        q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 4))
-            fingertip_mimic_traj = fingertip_mimic_traj.reshape(len(env_ids), self.num_traj_points, self.num_fingertips, 3)
-            self.fingertip_mimic_traj_vec[env_ids] = fingertip_mimic_traj - torch.roll(fingertip_mimic_traj, shifts=1, dims=2)
+            if self.cfg.reset_random_quat:
+                fingertip_mimic_traj = self.fingertip_mimic_default_traj[env_ids].reshape(-1, 3)
+                fingertip_mimic_traj_fake_quat = torch.zeros((fingertip_mimic_traj.shape[0], 4), device=self.device)
+                _, fingertip_mimic_traj = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
+                                                                            fingertip_mimic_traj, 
+                                                                            rotate_center.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3),
+                                                                            q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 4))
+                fingertip_mimic_traj = fingertip_mimic_traj.reshape(len(env_ids), self.num_traj_points, self.num_fingertips, 3)
+                self.fingertip_mimic_traj_vec[env_ids] = fingertip_mimic_traj - torch.roll(fingertip_mimic_traj, shifts=1, dims=2)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
         # global object positions
-        object_default_state[:, 3:7], object_default_state[:, 0:3] = apply_random_rotation_with_center(sampled_pose[:, 25:29], sampled_pose[:, 22:25], rotate_center, q_rand)
+        if self.cfg.reset_random_quat:
+            object_default_state[:, 3:7], object_default_state[:, 0:3] = apply_random_rotation_with_center(sampled_pose[:, 25:29], sampled_pose[:, 22:25], rotate_center, q_rand)
         object_default_state[:, 0:3] += self.scene.env_origins[env_ids]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
         self.object_default_pose[env_ids] = object_default_state[:, :7]
@@ -334,7 +336,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # reset hand
         hand_default_state = self.hand.data.default_root_state.clone()[env_ids]
-        hand_default_state[:, 3:7], hand_default_state[:, 0:3] = apply_random_rotation_with_center(hand_default_state[:, 3:7], hand_default_state[:, :3], rotate_center, q_rand)
+        if self.cfg.reset_random_quat:
+            hand_default_state[:, 3:7], hand_default_state[:, 0:3] = apply_random_rotation_with_center(hand_default_state[:, 3:7], hand_default_state[:, :3], rotate_center, q_rand)
         hand_default_state[:, 0:3] += self.scene.env_origins[env_ids]
         self.hand.write_root_state_to_sim(hand_default_state, env_ids)
         dof_pos = sampled_pose[:, :22]
@@ -485,6 +488,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         else:
             self.fingertip_mimic_default_traj = None
             self.fingertip_mimic_traj_vec = None
+
 
 @torch.jit.script
 def scale(x, lower, upper):

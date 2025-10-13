@@ -480,8 +480,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         if hasattr(self.cfg, "fingertip_mimic_traj"):
             self.mimic_traj_step = self.cfg.mimic_traj_step
             self.mimic_traj_start_scope = self.cfg.mimic_traj_start_scope
-            traj_clip = self.max_episode_length * self.mimic_traj_step + self.mimic_traj_start_scope[1] + 10
-            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device)[:traj_clip].reshape(-1, 5, 3).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
+            traj_clip = self.max_episode_length + self.mimic_traj_start_scope[1] + 10
+            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device)[::self.mimic_traj_step][:traj_clip].reshape(-1, 5, 3).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
             self.num_traj_points = self.fingertip_mimic_default_traj.shape[1]
             self.fingertip_mimic_traj_vec = self.fingertip_mimic_default_traj - torch.roll(self.fingertip_mimic_default_traj, shifts=1, dims=2)
             self.mimic_traj_step_offset = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)

@@ -263,7 +263,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_max = 0.5
     rotate_reward_scale = 2.5
     object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.4
+    pos_diff_penalty_scale = -0.0
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward
@@ -272,8 +272,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_pos_reward_scale = 0.001
     fingertip_mimic_penalty_scale = -0.1
     fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
-    mimic_traj_step = 2 # to match env control freq (20Hz)
-    mimic_traj_start_scope = [0, 1000]
+    mimic_traj_step = 1 # to match env control freq (20Hz)
+    mimic_traj_start_scope = [0, 200]
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise

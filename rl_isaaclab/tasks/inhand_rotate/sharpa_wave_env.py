@@ -302,10 +302,11 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         else:
             raise RuntimeError("No saved grasping states found")
         
-        rotate_center = self.hand.data.default_root_state.clone()[env_ids, :3]
-        q_rand = get_random_rotation(env_ids, self.device)
-        self.rot_axis[env_ids] = torch.tensor(self.cfg.rot_axis, device=self.device, dtype=torch.float32)
-        self.rot_axis[env_ids] = rotate_axis_by_quat(self.rot_axis[env_ids], q_rand)
+        if self.cfg.reset_random_quat:
+            rotate_center = self.hand.data.default_root_state.clone()[env_ids, :3]
+            q_rand = get_random_rotation(env_ids, self.device)
+            self.rot_axis[env_ids] = torch.tensor(self.cfg.rot_axis, device=self.device, dtype=torch.float32)
+            self.rot_axis[env_ids] = rotate_axis_by_quat(self.rot_axis[env_ids], q_rand)
 
         # reset mimic traj
         if self.fingertip_mimic_default_traj is not None:

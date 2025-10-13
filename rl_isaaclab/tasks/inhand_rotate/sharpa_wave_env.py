@@ -217,8 +217,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] + self.scene.env_origins, dim=-1) + 0.001)
         if self.fingertip_mimic_traj_vec is not None:
             fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
-            fingertip_vec = fingertip_vec.unsqueeze(1).repearet(1, self.num_traj_points, 1, 1)
-            fingertip_vec_diff = torch.norm(fingertip_vec - self.fingertip_mimic_traj_vec, dim=-1).sum(-1).min(-1)
+            index_expand = (self.episode_length_buf*self.mimic_traj_step+self.mimic_traj_step_offset).view(self.num_envs, 1, 1, 1).expand(-1, 1, 5, 3)
+            fingertip_mimic_traj_vec = torch.gather(self.fingertip_mimic_traj_vec, dim=1, index=index_expand).squeeze(1)
+            fingertip_vec_diff = torch.norm(fingertip_vec - fingertip_mimic_traj_vec, dim=-1).sum(-1)
         else:
             fingertip_vec_diff = torch.zeros_like(rotate_reward)
 
@@ -310,10 +311,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         if self.fingertip_mimic_default_traj is not None:
             fingertip_mimic_traj = self.fingertip_mimic_default_traj[env_ids].reshape(-1, 3)
             fingertip_mimic_traj_fake_quat = torch.zeros((fingertip_mimic_traj.shape[0], 4), device=self.device)
-            fingertip_mimic_traj, _ = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
+            _, fingertip_mimic_traj = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
                                                                         fingertip_mimic_traj, 
                                                                         rotate_center.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3),
-                                                                        q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3))
+                                                                        q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 4))
             fingertip_mimic_traj = fingertip_mimic_traj.reshape(len(env_ids), self.num_traj_points, self.num_fingertips, 3)
             self.fingertip_mimic_traj_vec[env_ids] = fingertip_mimic_traj - torch.roll(fingertip_mimic_traj, shifts=1, dims=2)
 
@@ -345,6 +346,15 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._refresh_lab()
         self.object_pos_prev[env_ids] = self.object_pos[env_ids]
         self.object_rot_prev[env_ids] = self.object_rot[env_ids]
+
+        # find start point of mimic traj
+        if self.fingertip_mimic_default_traj is not None:
+            mimic_traj_scope = self.fingertip_mimic_traj_vec[env_ids][:, self.mimic_traj_start_scope[0]:self.mimic_traj_start_scope[1]]
+            fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
+            fingertip_vec = fingertip_vec.unsqueeze(1).repeat(1, mimic_traj_scope.shape[1], 1, 1)[env_ids]
+            fingertip_vec_diff = torch.norm(fingertip_vec - mimic_traj_scope, dim=-1).sum(-1)
+            _, min_idx = torch.min(fingertip_vec_diff, dim=-1)
+            self.mimic_traj_step_offset[env_ids] = min_idx
 
         # reset data buffers
         self.last_contacts[env_ids] = 0
@@ -464,9 +474,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _setup_reward_config(self):
         self.rot_axis = torch.tensor(self.cfg.rot_axis, dtype=torch.float32).repeat(self.num_envs, 1).to(self.device)
         if hasattr(self.cfg, "fingertip_mimic_traj"):
-            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
+            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device).reshape(-1, 5, 3).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
             self.num_traj_points = self.fingertip_mimic_default_traj.shape[1]
             self.fingertip_mimic_traj_vec = self.fingertip_mimic_default_traj - torch.roll(self.fingertip_mimic_default_traj, shifts=1, dims=2)
+            self.mimic_traj_step = self.cfg.mimic_traj_step
+            self.mimic_traj_start_scope = self.cfg.mimic_traj_start_scope
+            self.mimic_traj_step_offset = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            print(f"mimic traj shape: {self.fingertip_mimic_traj_vec.shape}")
         else:
             self.fingertip_mimic_default_traj = None
             self.fingertip_mimic_traj_vec = None

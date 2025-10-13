@@ -271,7 +271,9 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.001
     fingertip_mimic_penalty_scale = -0.1
-    # fingertip_mimic_traj = 'cache/mimic.npy'
+    fingertip_mimic_traj = 'cache/recorded_traj_50Hz.npy'
+    mimic_traj_step = 2 # to match env control freq (20Hz)
+    mimic_traj_start_scope = [0, 1000]
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise

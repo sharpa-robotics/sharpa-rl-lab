@@ -354,10 +354,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # find start point of mimic traj
         if self.fingertip_mimic_default_traj is not None:
-            mimic_traj_scope = self.fingertip_mimic_traj_vec[env_ids][:, self.mimic_traj_start_scope[0]:self.mimic_traj_start_scope[1]]
+            mimic_traj_vec_scope = self.fingertip_mimic_traj_vec[env_ids][:, self.mimic_traj_start_scope[0]:self.mimic_traj_start_scope[1]]
             fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
-            fingertip_vec = fingertip_vec.unsqueeze(1).repeat(1, mimic_traj_scope.shape[1], 1, 1)[env_ids]
-            fingertip_vec_diff = torch.norm(fingertip_vec - mimic_traj_scope, dim=-1).sum(-1)
+            fingertip_vec = fingertip_vec.unsqueeze(1).repeat(1, mimic_traj_vec_scope.shape[1], 1, 1)[env_ids]
+            fingertip_vec_diff = torch.norm(fingertip_vec - mimic_traj_vec_scope, dim=-1).sum(-1)
             _, min_idx = torch.min(fingertip_vec_diff, dim=-1)
             self.mimic_traj_step_offset[env_ids] = min_idx
 
@@ -486,9 +486,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             hand_init_pose = self.cfg.hand_init_pose
             self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device)[::self.mimic_traj_step][:traj_clip].reshape(-1, 3)
             rotate_center = torch.zeros((self.fingertip_mimic_default_traj.shape[0], 3), device=self.device)
-            rotate_center[:, 0] = hand_init_pose[0][0]
-            rotate_center[:, 1] = hand_init_pose[0][1]
-            rotate_center[:, 2] = hand_init_pose[0][2]
             q_hand = torch.zeros((self.fingertip_mimic_default_traj.shape[0], 4), device=self.device)
             q_hand[:, 0] = hand_init_pose[1][0]
             q_hand[:, 1] = hand_init_pose[1][1]

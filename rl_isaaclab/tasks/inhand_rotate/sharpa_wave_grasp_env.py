@@ -100,6 +100,9 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
         self.rb_forces[env_ids, :] = 0.0
 
+        self.reset_height_lower[env_ids] = self.cfg.reset_height_lower
+        self.reset_height_upper[env_ids] = self.cfg.reset_height_upper
+
         # reset hand
         dof_pos = self.hand.data.default_joint_pos[env_ids] + 0.15 * rand_floats
         dof_pos = saturate(dof_pos, self.hand_dof_lower_limits[env_ids], self.hand_dof_upper_limits[env_ids],)

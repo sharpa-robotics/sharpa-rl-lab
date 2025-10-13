@@ -62,6 +62,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
     )
     # robot
+    hand_init_pose = ((0.0, 0.0, 0.5), (0.8660254, 0.0, -0.5, 0.0))
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
@@ -89,8 +90,8 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             ),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.5),
-            rot=(0.8660254, 0.0, -0.5, 0.0),
+            pos=hand_init_pose[0],
+            rot=hand_init_pose[1],
             joint_pos={
                 "right_thumb_CMC_FE": math.pi/180 * 95.05,
                 "right_thumb_CMC_AA": math.pi/180 * -13.48,

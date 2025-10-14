@@ -276,7 +276,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
     mimic_traj_step = 1 # to match env control freq (20Hz)
     mimic_traj_start_scope = [0, 200]
-    contact_reward_scale = 0.1
+    contact_reward_scale = 0.2
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise

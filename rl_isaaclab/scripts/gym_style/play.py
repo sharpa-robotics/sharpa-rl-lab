@@ -70,6 +70,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]
     agent_cfg["algo"] = args_cli.algorithm if args_cli.algorithm is not None else agent_cfg["algo"]
     agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
+    env_cfg.reset_random_quat = False
     env_cfg.randomize_pd_gains = False
     env_cfg.randomize_friction = True
     env_cfg.randomize_com = False

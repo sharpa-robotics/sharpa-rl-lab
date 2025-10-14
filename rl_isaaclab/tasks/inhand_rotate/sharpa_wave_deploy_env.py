@@ -268,7 +268,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         while True:
             if None not in fill_ch: break
             for ch in range(5):
-                ret = self.hand.fetch_tactile_frame(ch, timeout=0.1)
+                ret = self.hand.fetch_tactile_frame(ch+5*(1-self.cfg.hand_side), timeout=0.1)
                 if ret is None: continue
                 fill_ch[ch] = True
                 deform_data = ret["content"].get("DEFORM")

@@ -93,28 +93,28 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             pos=hand_init_pose[0],
             rot=hand_init_pose[1],
             joint_pos={
-                "right_thumb_CMC_FE": math.pi/180 * 95.05,
-                "right_thumb_CMC_AA": math.pi/180 * -13.48,
-                "right_thumb_MCP_FE": math.pi/180 * 22.44,
-                "right_thumb_MCP_AA": math.pi/180 * -0.13,
-                "right_thumb_IP": math.pi/180 * 14.94,
-                "right_index_MCP_FE": math.pi/180 * 50.59, 
-                "right_index_MCP_AA": math.pi/180 * -4.98,
-                "right_index_PIP": math.pi/180 * 24.96,
-                "right_index_DIP": math.pi/180 * 47.43,
-                "right_middle_MCP_FE": math.pi/180 * 25.27,
-                "right_middle_MCP_AA": math.pi/180 * -3.89,
-                "right_middle_PIP": math.pi/180 * 42.43,
-                "right_middle_DIP": math.pi/180 * 13.69,
-                "right_ring_MCP_FE": math.pi/180 * 23.57,
-                "right_ring_MCP_AA": math.pi/180 * 3.76,
-                "right_ring_PIP": math.pi/180 * 34.70,
-                "right_ring_DIP": math.pi/180 * 23.95,
-                "right_pinky_CMC": math.pi/180 * 9.75,
-                "right_pinky_MCP_FE": math.pi/180 * 43.98,
-                "right_pinky_MCP_AA": math.pi/180 * 12.89,
-                "right_pinky_PIP": math.pi/180 * 27.96,
-                "right_pinky_DIP": math.pi/180 * 35.32,
+                "right_thumb_CMC_FE": math.pi/180 * 94.33,
+                "right_thumb_CMC_AA": math.pi/180 * -14.90,
+                "right_thumb_MCP_FE": math.pi/180 * 27.79,
+                "right_thumb_MCP_AA": math.pi/180 * -0.14,
+                "right_thumb_IP": math.pi/180 * 10.44,
+                "right_index_MCP_FE": math.pi/180 * 63.32, 
+                "right_index_MCP_AA": math.pi/180 * -4.95,
+                "right_index_PIP": math.pi/180 * 28.80,
+                "right_index_DIP": math.pi/180 * 19.52,
+                "right_middle_MCP_FE": math.pi/180 * 26.46,
+                "right_middle_MCP_AA": math.pi/180 * -10.42,
+                "right_middle_PIP": math.pi/180 * 45.27,
+                "right_middle_DIP": math.pi/180 * 14.61,
+                "right_ring_MCP_FE": math.pi/180 * 24.44,
+                "right_ring_MCP_AA": math.pi/180 * 7.01,
+                "right_ring_PIP": math.pi/180 * 36.34,
+                "right_ring_DIP": math.pi/180 * 22.85,
+                "right_pinky_CMC": math.pi/180 * 5.25,
+                "right_pinky_MCP_FE": math.pi/180 * 51.80,
+                "right_pinky_MCP_AA": math.pi/180 * 8.72,
+                "right_pinky_PIP": math.pi/180 * 35.61,
+                "right_pinky_DIP": math.pi/180 * 29.33,
             },
         ),
         actuators={
@@ -247,17 +247,17 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(1., 1., 1.),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.64), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.65), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=False)
     # event
     events: EventCfg = EventCfg()
     # reset
-    reset_height_lower = 0.62
-    reset_height_upper = 0.66
+    reset_height_lower = 0.63
+    reset_height_upper = 0.67
     reset_angle_diff = 45 / 180 * math.pi
-    reset_random_quat = False
+    reset_random_quat = True
     # reward
     # primary reward
     rot_axis = (0, 0, 1)
@@ -265,15 +265,15 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_max = 0.5
     rotate_reward_scale = 2.5
     object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.0
+    pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward
     rot_diff_clip_min = -0.025
     rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.001
-    fingertip_mimic_penalty_scale = -0.2
-    fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
+    fingertip_mimic_penalty_scale = -0.0
+    # fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
     mimic_traj_step = 1 # to match env control freq (20Hz)
     mimic_traj_start_scope = [0, 200]
     # grasp cache

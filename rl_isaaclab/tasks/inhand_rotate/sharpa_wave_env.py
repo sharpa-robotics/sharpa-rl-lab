@@ -212,8 +212,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
 
         # auxiliary reward
-        angle_diff = (object_angvel * self.rot_axis).sum(-1) * self.step_dt
-        angle_diff = saturate(angle_diff, torch.tensor(self.cfg.rot_diff_clip_min), torch.tensor(self.cfg.rot_diff_clip_max))
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] + self.scene.env_origins, dim=-1) + 0.001)
         if self.fingertip_mimic_traj_vec is not None:
             fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
@@ -222,6 +220,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             fingertip_vec_diff = torch.norm(fingertip_vec - fingertip_mimic_traj_vec, dim=-1).sum(-1)
         else:
             fingertip_vec_diff = torch.zeros_like(rotate_reward)
+        filtered_force_matrix = torch.cat([self._contact_sensor[id].data.force_matrix_w[:, 0, 0, :].unsqueeze(1) for id in range(10)], dim=1)
+        contact_reward = torch.where((torch.norm(filtered_force_matrix, dim=-1, p=2) > 0.5).sum(-1) >= 3, 1.0, 0.0)
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -231,6 +231,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             work_penalty, self.cfg.work_penalty_scale,
             object_pos_diff, self.cfg.object_pos_reward_scale,
             fingertip_vec_diff, self.cfg.fingertip_mimic_penalty_scale,
+            contact_reward, self.cfg.contact_reward_scale,
         )
 
         self.extras["rotate_reward"] = rotate_reward.mean()
@@ -243,6 +244,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.extras['yaw'] = object_angvel[:, 2].mean()
         self.extras['object_pos_diff'] = object_pos_diff.mean()
         self.extras['fingertip_vec_diff'] = fingertip_vec_diff.mean()
+        self.extras['contact_reward'] = contact_reward.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -521,7 +523,8 @@ def compute_rewards(
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
     work_penalty: torch.Tensor, work_penalty_scale: float,
     object_pos_diff: torch.Tensor, object_pos_reward_scale: float,
-    fingertip_vec_diff:torch.Tensor, fingertip_mimic_penalty_scale: float,
+    fingertip_vec_diff: torch.Tensor, fingertip_mimic_penalty_scale: float,
+    contact_reward: torch.Tensor, contact_reward_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
     reward += object_linvel_penalty * object_linvel_penalty_scale
@@ -530,6 +533,7 @@ def compute_rewards(
     reward += work_penalty * work_penalty_scale
     reward += object_pos_diff * object_pos_reward_scale
     reward += fingertip_vec_diff * fingertip_mimic_penalty_scale
+    reward += contact_reward * contact_reward_scale
     return reward
 
 @torch.jit.script

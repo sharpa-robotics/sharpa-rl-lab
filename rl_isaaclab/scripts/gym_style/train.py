@@ -81,13 +81,12 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     log_root_path = os.path.abspath(os.path.join("logs", "gym_style", agent_cfg["algorithm"]["experiment_name"]))
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    print(f"Exact experiment name requested from command line: {log_dir}")
     log_dir = os.path.join(log_root_path, log_dir)
     if agent_cfg["algo"] == "ProprioAdapt":
         load_path_split = agent_cfg["load_path"].split("/")
-        if len(load_path_split) == 6:
-            print(load_path_split)
-            log_dir = os.path.join(*(load_path_split[:-2]))
+        if "gym_style" in load_path_split:
+            log_dir = '/' + os.path.join(*(load_path_split[:-2]))
+    print(f"Exact experiment name requested from command line: {log_dir}")
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)

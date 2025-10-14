@@ -1,4 +1,7 @@
 class SharpaWaveEnvCfg:
+    # record joint pos
+    record = True
+    record_length = 610
     # env
     hand_side = 0
     action_space = 22
@@ -21,5 +24,5 @@ class SharpaWaveEnvCfg:
     force_scale = 1/1.5
     binary_contact = False
     enable_contact_pos = False
-    disable_tactile_ids = []
+    disable_tactile_ids = [1, 4]
     contact_threshold = 0.7

@@ -272,22 +272,24 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     rot_diff_clip_min = -0.025
     rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.001
-    fingertip_mimic_penalty_scale = -0.2
-    fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
+    fingertip_mimic_penalty_scale = -0.0
+    # fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
+    joint_pos_mimic_penalty_scale = -0.4
+    joint_pos_mimic_traj = 'cache/recorded_joint_pos_traj_20hz.npy'
     mimic_traj_step = 1 # to match env control freq (20Hz)
     mimic_traj_start_scope = [0, 200]
-    contact_reward_scale = 0.2
+    contact_reward_scale = 0.0
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise
     joint_noise_scale = 0.02
     # contact
     enable_tactile = True
-    binary_contact = True
+    binary_contact = False
     enable_contact_pos = False
     disable_tactile_ids = []
-    contact_smooth = 0.3
-    contact_threshold = 0.2
+    contact_smooth = 0.5
+    contact_threshold = 0.05
     contact_latency = 0.005
     contact_sensor_noise = 0.01
     # align real

@@ -75,6 +75,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.tac_uv_map.append(np.load('assets/tactile_ha4_map/tactileSensor_map_TH_point.npy'))
 
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
+        self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
 
     def reset(self, seed, options):
         # reset state of scene
@@ -144,6 +145,11 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
     def _apply_action(self) -> None:
         self._refresh_lab()
         command = dof_isaaclab2sharpa(self.cur_targets.squeeze()).cpu().numpy()
+        if self.cfg.record:
+            self.recorded_joint_pos = torch.cat((self.recorded_joint_pos, self.cur_targets), dim=0)
+            if self.recorded_joint_pos.shape[0] >= self.cfg.record_length:
+                np.save('cache/recorded_joint_pos_traj_20hz.npy', self.recorded_joint_pos.cpu().numpy())
+                exit()
         self.hand.set_joint_position(command)
         self.prev_targets = self.cur_targets.clone()
 

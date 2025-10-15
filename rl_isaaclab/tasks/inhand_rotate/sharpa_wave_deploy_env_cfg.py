@@ -1,6 +1,6 @@
 class SharpaWaveEnvCfg:
     # record joint pos
-    record = True
+    record = False
     record_length = 610
     # env
     hand_side = 0

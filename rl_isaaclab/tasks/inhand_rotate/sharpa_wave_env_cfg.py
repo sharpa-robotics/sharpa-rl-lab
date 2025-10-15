@@ -62,7 +62,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         ),
     )
     # robot
-    hand_init_pose = ((0.0, 0.0, 0.5), (0.8660254, 0.0, -0.5, 0.0))
+    hand_init_pose = ((0.0, 0.0, 0.5), (0.819152, 0.0, -0.5735764, 0.0))
     robot_cfg: ArticulationCfg = ArticulationCfg(
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
@@ -93,28 +93,28 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             pos=hand_init_pose[0],
             rot=hand_init_pose[1],
             joint_pos={
-                "right_thumb_CMC_FE": math.pi/180 * 94.33,
-                "right_thumb_CMC_AA": math.pi/180 * -14.90,
-                "right_thumb_MCP_FE": math.pi/180 * 27.79,
-                "right_thumb_MCP_AA": math.pi/180 * -0.14,
-                "right_thumb_IP": math.pi/180 * 10.44,
-                "right_index_MCP_FE": math.pi/180 * 63.32, 
-                "right_index_MCP_AA": math.pi/180 * -4.95,
-                "right_index_PIP": math.pi/180 * 28.80,
-                "right_index_DIP": math.pi/180 * 19.52,
-                "right_middle_MCP_FE": math.pi/180 * 26.46,
-                "right_middle_MCP_AA": math.pi/180 * -10.42,
-                "right_middle_PIP": math.pi/180 * 45.27,
-                "right_middle_DIP": math.pi/180 * 14.61,
-                "right_ring_MCP_FE": math.pi/180 * 24.44,
-                "right_ring_MCP_AA": math.pi/180 * 7.01,
-                "right_ring_PIP": math.pi/180 * 36.34,
-                "right_ring_DIP": math.pi/180 * 22.85,
-                "right_pinky_CMC": math.pi/180 * 5.25,
-                "right_pinky_MCP_FE": math.pi/180 * 51.80,
-                "right_pinky_MCP_AA": math.pi/180 * 8.72,
-                "right_pinky_PIP": math.pi/180 * 35.61,
-                "right_pinky_DIP": math.pi/180 * 29.33,
+                "right_thumb_CMC_FE": math.pi/180 * 95.12771,
+                "right_thumb_CMC_AA": math.pi/180 * -3.11244,
+                "right_thumb_MCP_FE": math.pi/180 * 14.81626,
+                "right_thumb_MCP_AA": math.pi/180 * -1.03493,
+                "right_thumb_IP": math.pi/180 * 12.23986,
+                "right_index_MCP_FE": math.pi/180 * 65.21091, 
+                "right_index_MCP_AA": math.pi/180 * 6.1133,
+                "right_index_PIP": math.pi/180 * 15.58495,
+                "right_index_DIP": math.pi/180 * 5.90325,
+                "right_middle_MCP_FE": math.pi/180 * 31.74149,
+                "right_middle_MCP_AA": math.pi/180 * -0.95812,
+                "right_middle_PIP": math.pi/180 * 41.88173,
+                "right_middle_DIP": math.pi/180 * 12.844,
+                "right_ring_MCP_FE": math.pi/180 * 31.72383,
+                "right_ring_MCP_AA": math.pi/180 * 9.84458,
+                "right_ring_PIP": math.pi/180 * 35.22366,
+                "right_ring_DIP": math.pi/180 * 18.02839,
+                "right_pinky_CMC": math.pi/180 * 10.9712,
+                "right_pinky_MCP_FE": math.pi/180 * 68.30895,
+                "right_pinky_MCP_AA": math.pi/180 * 7.99151,
+                "right_pinky_PIP": math.pi/180 * 5.89626,
+                "right_pinky_DIP": math.pi/180 * 5.89875,
             },
         ),
         actuators={
@@ -247,15 +247,15 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             scale=(1., 1., 1.),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.07, 0.0, 0.65), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(-0.09559, -0.00517, 0.61906), rot=(1.0, 0.0, 0.0, 0.0)),
     )
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16384, env_spacing=0.75, replicate_physics=False)
     # event
     events: EventCfg = EventCfg()
     # reset
-    reset_height_lower = 0.63
-    reset_height_upper = 0.67
+    reset_height_lower = 0.59906
+    reset_height_upper = 0.63906
     reset_angle_diff = 45 / 180 * math.pi
     reset_random_quat = False
     # reward
@@ -296,7 +296,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     dof_limits_scale = 0.9
     current_coef = 0.7
     # randomize
-    scale_range = [0.6, 0.9, 16]
+    scale_range = [0.4, 0.6, 16]
     events.rand_params(scale_range)
     randomize_pd_gains = True
     randomize_p_gain_scale_lower = 0.5

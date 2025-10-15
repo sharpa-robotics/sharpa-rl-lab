@@ -37,6 +37,7 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
         filtered_force_matrix = torch.cat([self._contact_sensor[id].data.force_matrix_w[:, 0, 0, :].unsqueeze(1) for id in range(10)], dim=1)
         cond2 = (torch.norm(filtered_force_matrix, dim=-1, p=2) > 0.5).sum(-1) >= 3
         cond3 = torch.norm(filtered_force_matrix, dim=-1, p=2)[:, 0] > 0.5
+        cond3[:] = 1.0 # set true
         cond4 = torch.less(quat_to_rot(quat_mul(self.object_rot, quat_conjugate(self.object.data.default_root_state.clone()[:, 3:7]))), self.cfg.reset_angle_diff)
         cond = cond1.float() * cond2.float() * cond3.float() * cond4.float()
         self.reset_buf[cond < 1] = 1

@@ -5,10 +5,12 @@
 
 
 from __future__ import annotations
-import math
+import zmq
 import time
 import sys
+import json
 import os
+import threading
 
 import gymnasium as gym
 import numpy as np
@@ -17,6 +19,8 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+import rl_isaaclab.utils.sharpa_pb2 as pb
+from rl_isaaclab.utils.zmq_wrapper import ZmqWrapper
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../utils/python'))
 from sharpa import (
     SharpaWaveManager,
@@ -26,6 +30,31 @@ from sharpa import (
 
 if TYPE_CHECKING:
     from .sharpa_wave_deploy_env_cfg import SharpaWaveEnvCfg
+
+
+class TactileReceiver:
+    def __init__(self, addr="tcp://localhost:48006", hand_side=1):
+        self.zmq_sub = ZmqWrapper(zmq.SUB, addr)
+        self.f6 = {ch: None for ch in range(5)}
+        self.deform = {ch: None for ch in range(5)}
+        self.hand_side = hand_side
+        self.lock = threading.Lock()
+
+    def start(self):
+        self.zmq_sub.start_receiver_thread(self.callback)
+
+    def callback(self, msg):
+        tactile_msg = pb.Tactile()
+        tactile_msg.ParseFromString(msg)
+        f6 = [tactile_msg.force6d.force.x, tactile_msg.force6d.force.y, tactile_msg.force6d.force.z, tactile_msg.force6d.torque.x, tactile_msg.force6d.torque.y, tactile_msg.force6d.torque.z]
+        deform = np.frombuffer(tactile_msg.deform.data, dtype=np.uint8).reshape(tactile_msg.deform.height, tactile_msg.deform.width)
+        with self.lock:
+            ch = 4 - (10019 - 10 * self.hand_side - int(tactile_msg.header.key))
+            self.f6[ch] = f6
+            self.deform[ch] = deform
+
+    def stop(self):
+        self.zmq_sub.close()
 
 
 class SharpaWaveInhandRotateDeployEnv(gym.Env):
@@ -77,6 +106,10 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
         self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
 
+        if not self.cfg.enable_on_board:
+            self.tactile_receiver = TactileReceiver("tcp://localhost:48006", hand_side=self.cfg.hand_side)
+            self.tactile_receiver.start()
+
     def reset(self, seed, options):
         # reset state of scene
         indices = torch.arange(self.num_envs, dtype=torch.int64, device=self.device)
@@ -86,6 +119,13 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return self._get_observations(), None
 
     def _init_hand(self):
+        with open("/home/sharpa/.sharpa-pilot/config/tactile.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data["none"]["left"]["disable"] = not self.cfg.enable_on_board
+        data["none"]["right"]["disable"] = not self.cfg.enable_on_board
+        with open("/home/sharpa/.sharpa-pilot/config/tactile.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+
         self.hand = self.auto_detect_hand()
         if self.hand is None:
             print("Error: No available device found")
@@ -274,12 +314,17 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         while True:
             if None not in fill_ch: break
             for ch in range(5):
-                ret = self.hand.fetch_tactile_frame(ch+5*(1-self.cfg.hand_side), timeout=0.1)
-                if ret is None: continue
-                fill_ch[ch] = True
-                deform_data = ret["content"].get("DEFORM")
-                deform = deform_data.reshape(240, 240).astype(np.uint8)
-                f6_data = torch.tensor(ret["content"].get("F6"))
+                if self.cfg.enable_on_board:
+                    ret = self.hand.fetch_tactile_frame(ch+5*(1-self.cfg.hand_side), timeout=0.1)
+                    if ret is None: continue
+                    deform_data = ret["content"].get("DEFORM")
+                    deform = deform_data.reshape(240, 240).astype(np.uint8)
+                    f6_data = torch.tensor(ret["content"].get("F6"))
+                else:
+                    with self.tactile_receiver.lock:
+                        if self.tactile_receiver.f6[ch] is None: continue
+                        f6_data = torch.tensor(self.tactile_receiver.f6[ch])
+                        deform = self.tactile_receiver.deform[ch].reshape(240, 240).astype(np.uint8)
                 force[ch] = torch.norm(f6_data[:3])
                 _, binary = cv2.threshold(deform, 30, 255, cv2.THRESH_BINARY)
                 # get largest connected component centroid
@@ -287,6 +332,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
                 if center[0] is not None and center[1] is not None:
                     center_pos_ch = self.tac_uv_map[ch][int(center[0]), int(center[1])]
                     contact_pos[ch] = torch.tensor(center_pos_ch[:3]) / 1000.0
+                fill_ch[ch] = True
         if not self.cfg.enable_contact_pos:
             contact_pos[:] = 0.0
         if not self.cfg.enable_tactile:

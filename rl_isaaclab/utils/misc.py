@@ -11,12 +11,33 @@
 # --------------------------------------------------------
 
 import os
-import torch
 import shlex
 import random
 import subprocess
+import signal
+
+import torch
 import numpy as np
 
+def kill_port(port):
+    try:
+        # 查找占用该端口的进程 PID
+        result = subprocess.run(
+            ["lsof", "-t", f"-i:{port}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        pids = result.stdout.split()
+        if not pids:
+            print(f"No process is using port {port}")
+            return
+        # 杀掉每个 PID
+        for pid in pids:
+            os.kill(int(pid), signal.SIGKILL)
+            print(f"Killed PID {pid} using port {port}")
+    except Exception as e:
+        print(f"Error: {e}")
 
 def tprint(*args):
     """Temporarily prints things on the screen"""

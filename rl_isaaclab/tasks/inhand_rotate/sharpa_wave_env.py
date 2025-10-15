@@ -241,18 +241,18 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             contact_reward, self.cfg.contact_reward_scale,
         )
 
-        self.extras["rotate_reward"] = rotate_reward.mean()
-        self.extras["object_linvel_penalty"] = object_linvel_penalty.mean()
-        self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
-        self.extras["torque_penalty"] = torque_penalty.mean()
-        self.extras["work_penalty"] = work_penalty.mean()
+        if self.cfg.rotate_reward_scale != 0.0: self.extras["rotate_reward"] = rotate_reward.mean()
+        if self.cfg.object_linvel_penalty_scale != 0.0: self.extras["object_linvel_penalty"] = object_linvel_penalty.mean()
+        if self.cfg.pos_diff_penalty_scale != 0.0: self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
+        if self.cfg.torque_penalty_scale != 0.0: self.extras["torque_penalty"] = torque_penalty.mean()
+        if self.cfg.work_penalty_scale != 0.0: self.extras["work_penalty"] = work_penalty.mean()
         self.extras['roll'] = object_angvel[:, 0].mean()
         self.extras['pitch'] = object_angvel[:, 1].mean()
         self.extras['yaw'] = object_angvel[:, 2].mean()
-        self.extras['object_pos_diff'] = object_pos_diff.mean()
-        self.extras['mimic_pos_diff'] = mimic_pos_diff_penalty.mean()
-        self.extras['fingertip_vec_diff'] = fingertip_vec_diff.mean()
-        self.extras['contact_reward'] = contact_reward.mean()
+        if self.cfg.object_pos_reward_scale != 0.0: self.extras['object_pos_diff'] = object_pos_diff.mean()
+        if self.cfg.joint_pos_mimic_penalty_scale != 0.0: self.extras['mimic_pos_diff'] = mimic_pos_diff_penalty.mean()
+        if self.cfg.fingertip_mimic_penalty_scale != 0.0: self.extras['fingertip_vec_diff'] = fingertip_vec_diff.mean()
+        if self.cfg.contact_reward_scale != 0.0: self.extras['contact_reward'] = contact_reward.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
@@ -336,9 +336,9 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         # global object positions
         if self.cfg.reset_random_quat:
             _, object_default_pos = apply_random_rotation_with_center(object_default_state[:, 3:7], object_default_state[:, 0:3], rotate_center, q_rand)
+            self.object_default_pose[env_ids, :3] = object_default_pos.clone()
             object_default_state[:, 3:7], object_default_state[:, 0:3] = apply_random_rotation_with_center(sampled_pose[:, 25:29], sampled_pose[:, 22:25], rotate_center, q_rand)
             object_default_state[:, 0:3] += self.scene.env_origins[env_ids]
-            self.object_default_pose[env_ids, :3] = object_default_pos.clone()
         else:
             self.object_default_pose[env_ids, :3] = object_default_state[:, :3].clone()
             object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]

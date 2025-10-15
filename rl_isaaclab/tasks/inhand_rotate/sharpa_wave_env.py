@@ -212,7 +212,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
 
         # auxiliary reward
-        object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3] + self.scene.env_origins, dim=-1) + 0.001)
+        object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3], dim=-1) + 0.001)
         if self.fingertip_mimic_traj_vec is not None:
             fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
             index_expand = (self.episode_length_buf+self.mimic_traj_step_offset).view(self.num_envs, 1, 1, 1).expand(-1, 1, 5, 3)
@@ -335,12 +335,18 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
         # global object positions
         if self.cfg.reset_random_quat:
+            _, object_default_pos = apply_random_rotation_with_center(object_default_state[:, 3:7], object_default_state[:, 0:3], rotate_center, q_rand)
             object_default_state[:, 3:7], object_default_state[:, 0:3] = apply_random_rotation_with_center(sampled_pose[:, 25:29], sampled_pose[:, 22:25], rotate_center, q_rand)
-        object_default_state[:, 0:3] += self.scene.env_origins[env_ids]
+            object_default_state[:, 0:3] += self.scene.env_origins[env_ids]
+            self.object_default_pose[env_ids, :3] = object_default_pos.clone()
+        else:
+            self.object_default_pose[env_ids, :3] = object_default_state[:, :3].clone()
+            object_default_state[:, 0:3] = sampled_pose[:, 22:25] + self.scene.env_origins[env_ids]
+            object_default_state[:, 3:7] = sampled_pose[:, 25:29]
         object_default_state[:, 7:] = torch.zeros_like(self.object.data.default_root_state[env_ids, 7:])
-        self.object_default_pose[env_ids] = object_default_state[:, :7]
         self.object.write_root_pose_to_sim(object_default_state[:, :7], env_ids)
         self.object.write_root_velocity_to_sim(object_default_state[:, 7:], env_ids)
+        self.object_default_pose[env_ids, 3:7] = object_default_state[:, 3:7]
         self.rb_forces[env_ids, :] = 0.0
 
         self.reset_height_lower[env_ids] = object_default_state[:, 2] - (self.cfg.reset_height_upper - self.cfg.reset_height_lower) / 2
@@ -470,7 +476,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         obs_buf = (self.obs_buf_lag_history[:, -3:].reshape(self.num_envs, -1)).clone()
 
         self.proprio_hist_buf[:] = self.obs_buf_lag_history[:, -self.cfg.prop_hist_len:].clone()
-        self.priv_info_buf[:, 0:3] = self.object_pos - self.object_default_pose[:, :3] + self.scene.env_origins
+        self.priv_info_buf[:, 0:3] = self.object_pos - self.object_default_pose[:, :3]
 
         return obs_buf
     

@@ -257,7 +257,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     reset_height_lower = 0.63
     reset_height_upper = 0.67
     reset_angle_diff = 45 / 180 * math.pi
-    reset_random_quat = True
+    reset_random_quat = False
     # reward
     # primary reward
     rot_axis = (0, 0, 1)

@@ -3,7 +3,7 @@ class SharpaWaveEnvCfg:
     record = False
     record_length = 610
     # env
-    hand_side = 0
+    hand_side = 1
     action_space = 22
     observation_space = 192
     prop_hist_len = 30
@@ -18,11 +18,11 @@ class SharpaWaveEnvCfg:
     dof_limits_scale = 0.9
     # grasp cache
     use_grasp_cache = False
-    grasp_cache_path = 'cache/sharpa_grasp_linspace_0.6-0.9-16'
+    grasp_cache_path = 'cache/sharpa_grasp_linspace_0.4-0.6-8'
     # contact
     enable_tactile = True
     force_scale = 1/1.5
     binary_contact = False
     enable_contact_pos = False
-    disable_tactile_ids = [1, 4]
-    contact_threshold = 0.7
+    disable_tactile_ids = []
+    contact_threshold = 0.2

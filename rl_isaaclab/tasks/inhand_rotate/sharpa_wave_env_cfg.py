@@ -265,7 +265,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     angvel_clip_max = 0.5
     rotate_reward_scale = 2.5
     object_linvel_penalty_scale = -0.3
-    pos_diff_penalty_scale = -0.5
+    pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     # auxiliary reward
@@ -296,7 +296,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     dof_limits_scale = 0.9
     current_coef = 0.7
     # randomize
-    scale_range = [0.4, 0.6, 16]
+    scale_range = [0.4, 0.6, 8]
     events.rand_params(scale_range)
     randomize_pd_gains = True
     randomize_p_gain_scale_lower = 0.5

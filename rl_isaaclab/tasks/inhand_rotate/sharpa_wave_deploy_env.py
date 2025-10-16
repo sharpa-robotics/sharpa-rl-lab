@@ -221,14 +221,14 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             env_ids = self.hand._ALL_INDICES
         self.episode_length_buf[env_ids] = 0
 
-        # pose cache
-        if self.saved_grasping_states is not None:
-            sampled_pose = self.saved_grasping_states[[self.cfg.pose_id]].clone()
-        else:
-            raise RuntimeError("No saved grasping states found")
-
         # reset hand
         if self.cfg.use_grasp_cache:
+            # pose cache
+            if self.saved_grasping_states is not None:
+                sampled_pose = self.saved_grasping_states[[self.cfg.pose_id]].clone()
+            else:
+                raise RuntimeError("No saved grasping states found")
+            
             dof_pos = sampled_pose[:, :22]
             self.prev_targets[env_ids] = dof_pos.clone()
             self.cur_targets[env_ids] = dof_pos.clone()

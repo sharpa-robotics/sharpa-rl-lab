@@ -136,6 +136,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             rand_mass = torch.empty(self.num_envs).uniform_(self.cfg.randomize_mass_lower, self.cfg.randomize_mass_upper)
             self.set_mass(self.object, rand_mass, self.num_envs)
             self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
+        if self.cfg.randomize_joint_pos_offset:
+            self.joint_pos_offset = torch.empty([self.num_envs, 22]).uniform_(self.cfg.randomize_joint_pos_offset_lower, self.cfg.randomize_joint_pos_offset_upper)
 
         # physics_sim_view
         self.physics_sim_view: physx.SimulationView = sim_utils.SimulationContext.instance().physics_sim_view
@@ -185,7 +187,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def _apply_action(self) -> None:
         self._refresh_lab()
         if self.cfg.torque_control:
-            torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
+            if self.cfg.randomize_joint_pos_offset:
+                torques = self.p_gain * (self.cur_targets + self.joint_pos_offset - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
+            else:
+                torques = self.p_gain * (self.cur_targets - self.hand_dof_pos) - self.d_gain * self.hand_dof_vel
             self.torques = torques.clone()
             self.hand.set_joint_effort_target(self.torques[:, self.actuated_dof_indices], joint_ids=self.actuated_dof_indices)
         else:
@@ -396,6 +401,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.fingertip_velocities = self.hand.data.body_vel_w[:, self.finger_bodies]
 
         self.hand_dof_pos = self.hand.data.joint_pos
+        if self.cfg.randomize_joint_pos_offset:
+            self.hand_dof_pos -= self.joint_pos_offset
         self.hand_dof_vel = self.hand.data.joint_vel
         self.hand_dof_torque = self.hand.data.applied_torque
 

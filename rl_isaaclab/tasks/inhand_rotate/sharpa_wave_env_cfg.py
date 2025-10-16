@@ -315,6 +315,9 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_mass = True
     randomize_mass_lower = 0.01
     randomize_mass_upper = 0.25
+    randomize_joint_pos_offset = False
+    randomize_joint_pos_offset_lower = -0.1
+    randomize_joint_pos_offset_upper = 0.1
     # random forces applied to the object
     force_scale = 2
     random_force_prob_scalar = 0.25

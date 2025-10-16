@@ -8,3 +8,4 @@ __pycache__/
 logs/
 outputs/
 *.so
+*.h5

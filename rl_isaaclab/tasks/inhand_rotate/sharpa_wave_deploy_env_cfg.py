@@ -1,7 +1,9 @@
 class SharpaWaveEnvCfg:
     # record joint pos
-    record = False
-    record_length = 610
+    auto_record = False
+    auto_record_length = 610
+    # record state-action
+    record_state_action = True
     # env
     hand_side = 1
     action_space = 22

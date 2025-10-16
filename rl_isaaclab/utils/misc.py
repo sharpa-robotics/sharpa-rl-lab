@@ -1,19 +1,8 @@
-# --------------------------------------------------------
-# In-Hand Object Rotation via Rapid Motor Adaptation
-# https://arxiv.org/abs/2210.04887
-# Copyright (c) 2022 Haozhi Qi
-# Licensed under The MIT License [see LICENSE for details]
-# --------------------------------------------------------
-# Based on: IsaacGymEnvs
-# Copyright (c) 2018-2022, NVIDIA Corporation
-# Licence under BSD 3-Clause License
-# https://github.com/NVIDIA-Omniverse/IsaacGymEnvs/
-# --------------------------------------------------------
-
 import os
 import shlex
 import random
 import subprocess
+import threading
 import signal
 
 import torch
@@ -114,3 +103,17 @@ class AverageScalarMeter(object):
 
     def get_mean(self):
         return self.mean
+
+
+class ThreadSafeValue:
+    def __init__(self, value=None):
+        self._value = value
+        self._lock = threading.Lock()
+
+    def set(self, value):
+        with self._lock:
+            self._value = value
+
+    def get(self):
+        with self._lock:
+            return self._value

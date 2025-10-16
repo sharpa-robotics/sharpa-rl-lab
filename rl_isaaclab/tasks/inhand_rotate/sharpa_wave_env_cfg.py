@@ -274,7 +274,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     object_pos_reward_scale = 0.003
     fingertip_mimic_penalty_scale = -0.0
     # fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
-    joint_pos_mimic_penalty_scale = -0.4
+    joint_pos_mimic_penalty_scale = -0.0
     # joint_pos_mimic_traj = 'cache/recorded_joint_pos_traj_20hz.npy'
     mimic_traj_step = 1 # to match env control freq (20Hz)
     mimic_traj_start_scope = [0, 200]

@@ -1,16 +1,12 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-
 from __future__ import annotations
 import zmq
 import time
 import sys
 import json
+import signal
 import os
 import threading
+from datetime import datetime
 
 import gymnasium as gym
 import numpy as np
@@ -20,7 +16,11 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import rl_isaaclab.utils.sharpa_pb2 as pb
+from rl_isaaclab.utils.misc import ThreadSafeValue
 from rl_isaaclab.utils.zmq_wrapper import ZmqWrapper
+from rl_isaaclab.utils.keyboard_listener import KeyboardListener
+from rl_isaaclab.utils.state_action_recorder import H5StateActionRecorder
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../utils/python'))
 from sharpa import (
     SharpaWaveManager,
@@ -104,11 +104,27 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.tac_uv_map.append(np.load('assets/tactile_ha4_map/tactileSensor_map_TH_point.npy'))
 
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
-        self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
+        if self.cfg.auto_record:
+            self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
+
+        if self.cfg.record_state_action:
+            self.h5_state_action_recorder = H5StateActionRecorder()
+            self.save_flag = ThreadSafeValue(0)
+            self.keyboard_proc = KeyboardListener(self.save_flag)
+            self.last_save_flag = self.save_flag.get()
+            print("press s to start saving data, press d to stop saving and write to file")
+            self.keyboard_proc.start()
+            signal.signal(signal.SIGINT, self.signal_handler)
 
         if not self.cfg.enable_on_board:
             self.tactile_receiver = TactileReceiver("tcp://localhost:48006", hand_side=self.cfg.hand_side)
             self.tactile_receiver.start()
+
+    def signal_handler(self, sig, frame):
+        self.keyboard_proc.stop()
+        if not self.cfg.enable_on_board:
+            self.tactile_receiver.stop()
+        sys.exit(0)
 
     def reset(self, seed, options):
         # reset state of scene
@@ -177,17 +193,36 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return True
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
+        if self.cfg.record_state_action:
+            self.append_one_pair_data(actions)
         actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
         self.actions = actions.clone()
         targets = self.prev_targets + self.cfg.action_scale * self.actions
         self.cur_targets = saturate(targets, self.hand_dof_lower_limits, self.hand_dof_upper_limits)
 
+    def append_one_pair_data(self, actions):
+        if self.save_flag.get() == 1:
+            if self.last_save_flag == 0 and self.save_flag.get() == 1:
+                filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                os.makedirs('StateActionData', exist_ok=True)
+                self.h5_state_action_recorder.new(f'StateActionData/{filename}.h5')
+            save_dict = {
+                "time": time.time(),
+                "action": actions.squeeze().cpu().numpy(),
+                "obs": self.obs_buf["policy"].squeeze().cpu().numpy(),
+                "hist_obs":self.obs_buf["proprio_hist"].squeeze().cpu().numpy(),
+            }
+            self.h5_state_action_recorder.append(save_dict)
+        elif self.last_save_flag == 1 and self.save_flag.get() == 0:
+            self.h5_state_action_recorder.close()
+        self.last_save_flag = self.save_flag.get()
+
     def _apply_action(self) -> None:
         self._refresh_lab()
         command = dof_isaaclab2sharpa(self.cur_targets.squeeze()).cpu().numpy()
-        if self.cfg.record:
+        if self.cfg.auto_record:
             self.recorded_joint_pos = torch.cat((self.recorded_joint_pos, self.cur_targets), dim=0)
-            if self.recorded_joint_pos.shape[0] >= self.cfg.record_length:
+            if self.recorded_joint_pos.shape[0] >= self.cfg.auto_record_length:
                 np.save('cache/recorded_joint_pos_traj_20hz.npy', self.recorded_joint_pos.cpu().numpy())
                 exit()
         self.hand.set_joint_position(command)
@@ -201,7 +236,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             "proprio_hist": self.proprio_hist_buf,
         }
         return observations
-    
+
     def step(self, action):
         action = action.to(self.device)
         self._pre_physics_step(action)
@@ -348,7 +383,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         contact_pos = torch.flip(contact_pos, dims=[0])
         contact_pos[self.cfg.disable_tactile_ids, :] = 0.0
         contact_pos = contact_pos.reshape(1, -1)
-        print(f'contact force: {force}')
+        # print(f'contact force: {force}')
         return force, contact_pos
 
 @torch.jit.script

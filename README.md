@@ -9,17 +9,22 @@ git submodule update --init --recursive
 pip install -e .
 ```
 
-# step 1: generate grasp
+# train
+## step 1: generate grasp
 ```bash
 python rl_isaaclab/scripts/gym_style/gen_grasp.py --task Isaac-Inhand-Rotate-Grasp-Sharpa-Wave-v0 --headless
 ```
-# step 2: train
+## step 2: rl train
 ```bash
 python rl_isaaclab/scripts/gym_style/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --headless
 ```
-# step 3: distillation
+## step 3: distillation
 ```bash
 python rl_isaaclab/scripts/gym_style/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --headless --algorithm ProprioAdapt --load_path output
+```
+## step 4: fintune (Not Required)
+```bash
+python rl_isaaclab/scripts/gym_style/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --headless --algorithm FineTune --load_path output --finetune_dataset_dir dataset
 ```
 
 # visualization
@@ -27,7 +32,7 @@ python rl_isaaclab/scripts/gym_style/train.py --task Isaac-Inhand-Rotate-Sharpa-
 ```bash
 python rl_isaaclab/scripts/gym_style/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --num_envs 16 --load_path output
 ```
-## vis distillation
+## vis distillation/finetune
 ```bash
 python rl_isaaclab/scripts/gym_style/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --num_envs 16 --algorithm ProprioAdapt --load_path output
 ```

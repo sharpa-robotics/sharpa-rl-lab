@@ -41,3 +41,10 @@ algorithm:
   priv_info: True
   priv_info_dim: 8
   priv_info_embed_dim: 8
+
+finetune:
+  batch_size: 1024
+  num_epochs: 20
+  val_split: 0.2
+  prop_hist_len: 30
+  learning_rate: 5e-1

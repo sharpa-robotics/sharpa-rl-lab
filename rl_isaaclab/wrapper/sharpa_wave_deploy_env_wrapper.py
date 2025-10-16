@@ -103,9 +103,9 @@ class GymStyleEnvWrapper(ABC):
         return obs_dict
 
     def step(self, actions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
-        # clip actions
-        if self.clip_actions is not None:
-            actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
+        # clip actions, disable for record
+        # if self.clip_actions is not None:
+        #     actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
         # record step information
         obs_dict, _, _, _, _ = self.env.step(actions)
         # move extra observations to the extras dict

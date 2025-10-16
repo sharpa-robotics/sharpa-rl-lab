@@ -87,7 +87,7 @@ def main(env_cfg, agent_cfg: dict):
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
-    env = GymStyleEnvWrapper(env, clip_actions=None)
+    env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
     agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config, create_output_dir=False)
 
     # load the checkpoint

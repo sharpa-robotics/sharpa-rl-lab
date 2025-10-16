@@ -137,7 +137,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             self.set_mass(self.object, rand_mass, self.num_envs)
             self.priv_info_buf[:, 4] = self.object.root_physx_view.get_masses().reshape(self.num_envs)
         if self.cfg.randomize_joint_pos_offset:
-            self.joint_pos_offset = torch.empty([self.num_envs, 22]).uniform_(self.cfg.randomize_joint_pos_offset_lower, self.cfg.randomize_joint_pos_offset_upper)
+            self.joint_pos_offset = torch.empty([self.num_envs, 22], device=self.device).uniform_(self.cfg.randomize_joint_pos_offset_lower, self.cfg.randomize_joint_pos_offset_upper)
 
         # physics_sim_view
         self.physics_sim_view: physx.SimulationView = sim_utils.SimulationContext.instance().physics_sim_view

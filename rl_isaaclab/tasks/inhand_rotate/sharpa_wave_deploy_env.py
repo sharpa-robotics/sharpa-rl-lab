@@ -383,7 +383,8 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         contact_pos = torch.flip(contact_pos, dims=[0])
         contact_pos[self.cfg.disable_tactile_ids, :] = 0.0
         contact_pos = contact_pos.reshape(1, -1)
-        # print(f'contact force: {force}')
+        if not self.cfg.record_state_action:
+            print(f'contact force: {force}')
         return force, contact_pos
 
 @torch.jit.script

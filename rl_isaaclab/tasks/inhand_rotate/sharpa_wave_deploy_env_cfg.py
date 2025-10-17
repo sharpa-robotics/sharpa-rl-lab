@@ -3,7 +3,7 @@ class SharpaWaveEnvCfg:
     auto_record = False
     auto_record_length = 610
     # record state-action
-    record_state_action = True
+    record_state_action = False
     # env
     hand_side = 1
     action_space = 22

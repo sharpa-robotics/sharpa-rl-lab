@@ -3,7 +3,7 @@ class SharpaWaveEnvCfg:
     auto_record = False
     auto_record_length = 610
     # record state-action
-    record_state_action = False
+    keyboard_listen = True
     # env
     hand_side = 1
     action_space = 22
@@ -22,7 +22,7 @@ class SharpaWaveEnvCfg:
     use_grasp_cache = False
     grasp_cache_path = 'cache/sharpa_grasp_linspace_0.4-0.6-8'
     # contact
-    enable_on_board = True
+    enable_on_board = False
     enable_tactile = True
     force_scale = 1/1.5
     binary_contact = False

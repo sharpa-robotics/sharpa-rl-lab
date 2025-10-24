@@ -89,10 +89,11 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         device=self.device).reshape(1, -1) * self.cfg.dof_limits_scale
 
         # grasp_cache
-        if self.cfg.grasp_cache_path:
-            self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}.npy")).float().to(self.device)
-        else:
-            self.saved_grasping_states = None
+        if self.cfg.use_grasp_cache:
+            if self.cfg.grasp_cache_path:
+                self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}.npy")).float().to(self.device)
+            else:
+                self.saved_grasping_states = None
 
         # contact buffers
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
@@ -107,11 +108,11 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if self.cfg.auto_record:
             self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
 
-        if self.cfg.record_state_action:
+        if self.cfg.keyboard_listen:
             self.h5_state_action_recorder = H5StateActionRecorder()
-            self.save_flag = ThreadSafeValue(0)
-            self.keyboard_proc = KeyboardListener(self.save_flag)
-            self.last_save_flag = self.save_flag.get()
+            self.keyboard_listen_flag = ThreadSafeValue(2)
+            self.keyboard_proc = KeyboardListener(self.keyboard_listen_flag)
+            self.last_keyboard_listen_flag = self.keyboard_listen_flag.get()
             print("press s to start saving data, press d to stop saving and write to file")
             self.keyboard_proc.start()
             signal.signal(signal.SIGINT, self.signal_handler)
@@ -193,7 +194,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return True
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        if self.cfg.record_state_action:
+        if self.cfg.keyboard_listen:
             self.append_one_pair_data(actions)
         actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
         self.actions = actions.clone()
@@ -201,8 +202,8 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.cur_targets = saturate(targets, self.hand_dof_lower_limits, self.hand_dof_upper_limits)
 
     def append_one_pair_data(self, actions):
-        if self.save_flag.get() == 1:
-            if self.last_save_flag == 0 and self.save_flag.get() == 1:
+        if self.keyboard_listen_flag.get() == 1:
+            if self.last_keyboard_listen_flag == 0 and self.keyboard_listen_flag.get() == 1:
                 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 os.makedirs('StateActionData', exist_ok=True)
                 self.h5_state_action_recorder.new(f'StateActionData/{filename}.h5')
@@ -213,9 +214,9 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
                 "hist_obs":self.obs_buf["proprio_hist"].squeeze().cpu().numpy(),
             }
             self.h5_state_action_recorder.append(save_dict)
-        elif self.last_save_flag == 1 and self.save_flag.get() == 0:
+        elif self.last_keyboard_listen_flag == 1 and self.keyboard_listen_flag.get() == 0:
             self.h5_state_action_recorder.close()
-        self.last_save_flag = self.save_flag.get()
+        self.last_keyboard_listen_flag = self.keyboard_listen_flag.get()
 
     def _apply_action(self) -> None:
         self._refresh_lab()
@@ -238,9 +239,22 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return observations
 
     def step(self, action):
-        action = action.to(self.device)
-        self._pre_physics_step(action)
-        self._apply_action()
+        if self.cfg.keyboard_listen:
+            if self.keyboard_listen_flag.get() == 2:
+                self.hand.set_joint_position([0] * 22)
+            elif self.keyboard_listen_flag.get() == 3:
+                freeze_actions = self.hand.get_states().angles
+                self.hand.set_joint_position(freeze_actions)
+            elif self.keyboard_listen_flag.get() == 4:
+                self._reset_idx([0])
+            else:
+                action = action.to(self.device)
+                self._pre_physics_step(action)
+                self._apply_action()
+        else:
+            action = action.to(self.device)
+            self._pre_physics_step(action)
+            self._apply_action()
         time.sleep(1/self.cfg.control_freq)
         self.episode_length_buf += 1
         self.obs_buf = self._get_observations()
@@ -251,6 +265,9 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         error = self.hand.set_current_coeff(self.cfg.current_coef)
         self.hand.set_joint_position([0] * 22)
         time.sleep(3)
+        if self.cfg.keyboard_listen:
+            if self.keyboard_listen_flag.get() == 2: return
+            self.keyboard_listen_flag.set(5)
 
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
@@ -383,7 +400,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         contact_pos = torch.flip(contact_pos, dims=[0])
         contact_pos[self.cfg.disable_tactile_ids, :] = 0.0
         contact_pos = contact_pos.reshape(1, -1)
-        if not self.cfg.record_state_action:
+        if not self.cfg.keyboard_listen:
             print(f'contact force: {force}')
         return force, contact_pos
 

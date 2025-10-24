@@ -7,8 +7,8 @@ from rl_isaaclab.utils.misc import ThreadSafeValue
 
 
 class KeyboardListener:
-    def __init__(self, saving_flag: ThreadSafeValue):
-        self.saving_flag = saving_flag
+    def __init__(self, keyboard_listen_flag: ThreadSafeValue):
+        self.keyboard_listen_flag = keyboard_listen_flag
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self._run, daemon=True)
 
@@ -16,10 +16,19 @@ class KeyboardListener:
         try:
             if key.char == 's':
                 print("[Keyboard] Start saving data.")
-                self.saving_flag.set(1)
+                self.keyboard_listen_flag.set(1)
             elif key.char == 'd':
                 print("[Keyboard] Stop saving and write to file.")
-                self.saving_flag.set(0)
+                self.keyboard_listen_flag.set(0)
+            if key.char == 'q':
+                print('[Keyboard] Moving home.')
+                self.keyboard_listen_flag.set(2)
+            elif key.char == 'w':
+                print('[Keyboard] Freeze actions.')
+                self.keyboard_listen_flag.set(3)
+            elif key.char == 'e':
+                print('[Keyboard] Start policy.')
+                self.keyboard_listen_flag.set(4)
             else:
                 pass
         except:

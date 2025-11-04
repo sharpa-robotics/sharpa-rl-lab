@@ -3,9 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Script to train RL agent with Gym-Style agent."""
-
-"""Launch Isaac Sim Simulator first."""
 
 import argparse
 import sys
@@ -56,10 +53,9 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-@hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
+@hydra_task_config(args_cli.task, "agent_cfg_entry_point")
 def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     shutil.rmtree('outputs/')
-    """Train with Gym-Style agent."""
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     env_cfg.seed = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device

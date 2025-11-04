@@ -3,9 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Script to train RL agent with Gym-Style agent."""
-
-"""Launch Isaac Sim Simulator first."""
 
 import argparse
 import sys
@@ -58,10 +55,9 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-@hydra_task_config(args_cli.task, "gym_style_cfg_entry_point")
+@hydra_task_config(args_cli.task, "agent_cfg_entry_point")
 def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     shutil.rmtree('outputs/')
-    """Train with Gym-Style agent."""
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg["algorithm"]["max_agent_steps"] = args_cli.max_agent_steps if args_cli.max_agent_steps is not None else agent_cfg["algorithm"]["max_agent_steps"]
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
@@ -82,7 +78,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
 
     # specify directory for logging experiments
-    log_root_path = os.path.abspath(os.path.join("logs", "gym_style", agent_cfg["algorithm"]["experiment_name"]))
+    log_root_path = os.path.abspath(os.path.join("logs", agent_cfg["algorithm"]["experiment_name"]))
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     print(f"Exact experiment name requested from command line: {log_dir}")

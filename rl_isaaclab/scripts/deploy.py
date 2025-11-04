@@ -1,7 +1,6 @@
 import argparse
 import importlib
 import os
-import shutil
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Deploy an RL agent.")
@@ -58,7 +57,7 @@ def custom_task_config(task_id):
         def wrapper(*args, **kwargs):
             spec = gym.spec(task_id)
             env_cfg_entry_point = spec.kwargs.get("env_cfg_entry_point", None)
-            agent_cfg_entry_point = spec.kwargs.get("gym_style_cfg_entry_point", None)
+            agent_cfg_entry_point = spec.kwargs.get("agent_cfg_entry_point", None)
             env_cfg = parse_entry_point(env_cfg_entry_point)
             agent_cfg = parse_entry_point(agent_cfg_entry_point)
             func(env_cfg, agent_cfg)
@@ -67,7 +66,6 @@ def custom_task_config(task_id):
 
 @custom_task_config(args_cli.task)
 def main(env_cfg, agent_cfg: dict):
-    """Deploy with Gym-Style agent."""
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.seed = agent_cfg["seed"]
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]
@@ -79,7 +77,7 @@ def main(env_cfg, agent_cfg: dict):
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
 
     # specify directory for logging experiments
-    log_root_path = os.path.abspath(os.path.join("logs", "gym_style", agent_cfg["algorithm"]["experiment_name"]))
+    log_root_path = os.path.abspath(os.path.join("logs", agent_cfg["algorithm"]["experiment_name"]))
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     print(f"Exact experiment name requested from command line: {log_dir}")

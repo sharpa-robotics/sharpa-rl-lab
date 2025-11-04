@@ -99,8 +99,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         else:
             self.saved_grasping_states = None
 
-        # reward config
-        self._setup_reward_config()
+        self.rot_axis = torch.tensor(self.cfg.rot_axis, dtype=torch.float32).repeat(self.num_envs, 1).to(self.device)
 
         # contact buffers
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
@@ -208,31 +207,13 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-        # primary reward
         object_angvel = axis_angle_from_quat(quat_mul(self.object_rot, quat_conjugate(self.object_rot_prev))) / self.step_dt
         rotate_reward = saturate((object_angvel * self.rot_axis).sum(-1), torch.tensor(self.cfg.angvel_clip_min), torch.tensor(self.cfg.angvel_clip_max))
         object_linvel_penalty = torch.norm(self.object_pos - self.object_pos_prev, p=1, dim=-1) / self.step_dt
         pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - self.hand.data.default_joint_pos[:, self.actuated_dof_indices]) ** 2).sum(-1)
         torque_penalty = (self.hand_dof_torque[:, self.actuated_dof_indices] ** 2).sum(-1)
         work_penalty = ((self.hand_dof_torque[:, self.actuated_dof_indices] * self.hand_dof_vel[:, self.actuated_dof_indices]).sum(-1)) ** 2
-
-        # auxiliary reward
         object_pos_diff = 1.0 / (torch.norm(self.object_pos - self.object_default_pose.clone()[:, :3], dim=-1) + 0.001)
-        if self.fingertip_mimic_traj_vec is not None:
-            fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
-            index_expand = (self.episode_length_buf+self.mimic_traj_step_offset).view(self.num_envs, 1, 1, 1).expand(-1, 1, 5, 3)
-            fingertip_mimic_traj_vec = torch.gather(self.fingertip_mimic_traj_vec, dim=1, index=index_expand).squeeze(1)
-            fingertip_vec_diff = torch.norm(fingertip_vec - fingertip_mimic_traj_vec, dim=-1).sum(-1)
-        else:
-            fingertip_vec_diff = torch.zeros_like(rotate_reward)
-        if self.joint_pos_mimic_default_traj is not None:
-            index_expand = (self.episode_length_buf+self.mimic_traj_step_offset).view(self.num_envs, 1, 1).expand(-1, 1, 22)
-            joint_pos_mimic_traj = torch.gather(self.joint_pos_mimic_default_traj, dim=1, index=index_expand).squeeze(1)
-            mimic_pos_diff_penalty = ((self.hand_dof_pos[:, self.actuated_dof_indices] - joint_pos_mimic_traj) ** 2).sum(-1)
-        else:
-            mimic_pos_diff_penalty = torch.zeros_like(rotate_reward)
-        filtered_force_matrix = torch.cat([self._contact_sensor[id].data.force_matrix_w[:, 0, 0, :].unsqueeze(1) for id in range(10)], dim=1)
-        contact_reward = torch.where((torch.norm(filtered_force_matrix, dim=-1, p=2) > 0.5).sum(-1) >= 3, 1.0, 0.0)
 
         total_reward = compute_rewards(
             rotate_reward, self.cfg.rotate_reward_scale,
@@ -241,28 +222,21 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             torque_penalty, self.cfg.torque_penalty_scale,
             work_penalty, self.cfg.work_penalty_scale,
             object_pos_diff, self.cfg.object_pos_reward_scale,
-            fingertip_vec_diff, self.cfg.fingertip_mimic_penalty_scale,
-            mimic_pos_diff_penalty, self.cfg.joint_pos_mimic_penalty_scale,
-            contact_reward, self.cfg.contact_reward_scale,
         )
 
-        if self.cfg.rotate_reward_scale != 0.0: self.extras["rotate_reward"] = rotate_reward.mean()
-        if self.cfg.object_linvel_penalty_scale != 0.0: self.extras["object_linvel_penalty"] = object_linvel_penalty.mean()
-        if self.cfg.pos_diff_penalty_scale != 0.0: self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
-        if self.cfg.torque_penalty_scale != 0.0: self.extras["torque_penalty"] = torque_penalty.mean()
-        if self.cfg.work_penalty_scale != 0.0: self.extras["work_penalty"] = work_penalty.mean()
+        self.extras["rotate_reward"] = rotate_reward.mean()
+        self.extras["object_linvel_penalty"] = object_linvel_penalty.mean()
+        self.extras["pos_diff_penalty"] = pos_diff_penalty.mean()
+        self.extras["torque_penalty"] = torque_penalty.mean()
+        self.extras["work_penalty"] = work_penalty.mean()
+        self.extras['object_pos_diff'] = object_pos_diff.mean()
         self.extras['roll'] = object_angvel[:, 0].mean()
         self.extras['pitch'] = object_angvel[:, 1].mean()
         self.extras['yaw'] = object_angvel[:, 2].mean()
-        if self.cfg.object_pos_reward_scale != 0.0: self.extras['object_pos_diff'] = object_pos_diff.mean()
-        if self.cfg.joint_pos_mimic_penalty_scale != 0.0: self.extras['mimic_pos_diff'] = mimic_pos_diff_penalty.mean()
-        if self.cfg.fingertip_mimic_penalty_scale != 0.0: self.extras['fingertip_vec_diff'] = fingertip_vec_diff.mean()
-        if self.cfg.contact_reward_scale != 0.0: self.extras['contact_reward'] = contact_reward.mean()
         self.extras['gravity_x'] = self.physics_sim_view.get_gravity()[0]
         self.extras['gravity_y'] = self.physics_sim_view.get_gravity()[1]
         self.extras['gravity_z'] = self.physics_sim_view.get_gravity()[2]
         self.extras['total_reward'] = total_reward.mean()
-
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -277,10 +251,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         if self.extras['height_reset_upper'] < 5e-4 and self.extras['height_reset_lower'] < 5e-4 and self.cfg.gravity_curriculum and self.common_step_counter > 1000:
             gravity_amp = self.physics_sim_view.get_gravity()
             gravity_amp = torch.sqrt(torch.tensor(gravity_amp[0]**2+gravity_amp[1]**2+gravity_amp[2]**2))
-            if gravity_amp < 10:
+            if gravity_amp < 10: # max gravity set to 10
                 new_gravity = carb.Float3(0.0, 0.0, -gravity_amp - 0.05)
                 self.physics_sim_view.set_gravity(new_gravity)
-                print(f"\nupdate gravity: {new_gravity}")
+                print(f"update gravity: {new_gravity}")
         return height_reset, time_out
 
     def _rand_pd_scales(self, lower, upper, num_envs, n_dofs):
@@ -298,10 +272,10 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         # pd randomize
         if self.cfg.randomize_pd_gains:
-            assert self.cfg.randomize_p_gain_scale_lower <= 1, "pd scale参数lower必须<=1, upper必须>=1" 
-            assert self.cfg.randomize_p_gain_scale_upper >= 1, "pd scale参数lower必须<=1, upper必须>=1" 
-            assert self.cfg.randomize_d_gain_scale_lower <= 1, "pd scale参数lower必须<=1, upper必须>=1" 
-            assert self.cfg.randomize_d_gain_scale_upper >= 1, "pd scale参数lower必须<=1, upper必须>=1" 
+            assert self.cfg.randomize_p_gain_scale_lower <= 1, "pd scale lower bound must be <= 1, upper bound must be >= 1"
+            assert self.cfg.randomize_p_gain_scale_upper >= 1, "pd scale lower bound must be <= 1, upper bound must be >= 1"
+            assert self.cfg.randomize_d_gain_scale_lower <= 1, "pd scale lower bound must be <= 1, upper bound must be >= 1"
+            assert self.cfg.randomize_d_gain_scale_upper >= 1, "pd scale lower bound must be <= 1, upper bound must be >= 1"
             rand_scale = self._rand_pd_scales(self.cfg.randomize_p_gain_scale_lower, self.cfg.randomize_p_gain_scale_upper, len(env_ids), self.num_hand_dofs)
             self.p_gain[env_ids] = self.p_gain_default[env_ids] * rand_scale
             rand_scale = self._rand_pd_scales(self.cfg.randomize_d_gain_scale_lower, self.cfg.randomize_d_gain_scale_upper, len(env_ids), self.num_hand_dofs)
@@ -322,19 +296,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             q_rand = get_random_rotation(env_ids, self.device)
             self.rot_axis[env_ids] = torch.tensor(self.cfg.rot_axis, device=self.device, dtype=torch.float32)
             self.rot_axis[env_ids] = rotate_axis_by_quat(self.rot_axis[env_ids], q_rand)
-
-        # reset mimic traj
-        if self.fingertip_mimic_default_traj is not None:
-            if self.cfg.reset_random_quat:
-                fingertip_mimic_traj = self.fingertip_mimic_default_traj[env_ids].reshape(-1, 3)
-                fingertip_mimic_traj_fake_quat = torch.zeros((fingertip_mimic_traj.shape[0], 4), device=self.device)
-                fingertip_mimic_traj_fake_quat[:, 0] = 1
-                _, fingertip_mimic_traj = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, 
-                                                                            fingertip_mimic_traj, 
-                                                                            rotate_center.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 3),
-                                                                            q_rand.unsqueeze(1).unsqueeze(1).repeat(1, self.num_traj_points, self.num_fingertips, 1).reshape(-1, 4))
-                fingertip_mimic_traj = fingertip_mimic_traj.reshape(len(env_ids), self.num_traj_points, self.num_fingertips, 3)
-                self.fingertip_mimic_traj_vec[env_ids] = fingertip_mimic_traj - torch.roll(fingertip_mimic_traj, shifts=1, dims=2)
 
         # reset object
         object_default_state = self.object.data.default_root_state.clone()[env_ids]
@@ -372,21 +333,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self._refresh_lab()
         self.object_pos_prev[env_ids] = self.object_pos[env_ids]
         self.object_rot_prev[env_ids] = self.object_rot[env_ids]
-
-        # find start point of mimic traj
-        if self.fingertip_mimic_default_traj is not None:
-            mimic_traj_vec_scope = self.fingertip_mimic_traj_vec[env_ids][:, self.mimic_traj_start_scope[0]:self.mimic_traj_start_scope[1]]
-            fingertip_vec = self.fingertip_pos - torch.roll(self.fingertip_pos, shifts=1, dims=1)
-            fingertip_vec = fingertip_vec.unsqueeze(1).repeat(1, mimic_traj_vec_scope.shape[1], 1, 1)[env_ids]
-            fingertip_vec_diff = torch.norm(fingertip_vec - mimic_traj_vec_scope, dim=-1).sum(-1)
-            _, min_idx = torch.min(fingertip_vec_diff, dim=-1)
-            self.mimic_traj_step_offset[env_ids] = min_idx
-        elif self.joint_pos_mimic_default_traj is not None:
-            mimic_joint_pos_traj_scope = self.joint_pos_mimic_default_traj[env_ids][:, self.mimic_traj_start_scope[0]:self.mimic_traj_start_scope[1]]
-            hand_dof_pos = self.hand_dof_pos.unsqueeze(1).repeat(1, mimic_joint_pos_traj_scope.shape[1], 1)[env_ids]
-            pos_diff = ((hand_dof_pos - mimic_joint_pos_traj_scope) ** 2).sum(-1)
-            _, min_idx = torch.min(pos_diff, dim=-1)
-            self.mimic_traj_step_offset[env_ids] = min_idx
 
         # reset data buffers
         self.last_contacts[env_ids] = 0
@@ -488,7 +434,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         return obs_buf
     
     def set_friction(self, asset, value, num_envs):
-        """Update material properties for a given asset."""
         materials = asset.root_physx_view.get_material_properties()
         materials[..., 0] = value  # Static friction.
         materials[..., 1] = value  # Dynamic friction.
@@ -504,47 +449,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
     def set_mass(self, asset, value, num_envs):
         env_ids = torch.arange(num_envs, device="cpu")
         asset.root_physx_view.set_masses(value, env_ids)
-    
-    def _setup_reward_config(self):
-        self.rot_axis = torch.tensor(self.cfg.rot_axis, dtype=torch.float32).repeat(self.num_envs, 1).to(self.device)
-        if hasattr(self.cfg, "joint_pos_mimic_traj"):
-            self.mimic_traj_step = self.cfg.mimic_traj_step
-            self.mimic_traj_start_scope = self.cfg.mimic_traj_start_scope
-            traj_clip = self.max_episode_length + self.mimic_traj_start_scope[1] + 10
-
-            self.joint_pos_mimic_default_traj = torch.from_numpy(np.load(self.cfg.joint_pos_mimic_traj)).float().to(self.device)[::self.mimic_traj_step][:traj_clip]
-            self.joint_pos_mimic_default_traj = self.joint_pos_mimic_default_traj.unsqueeze(0).repeat(self.num_envs, 1, 1)
-            self.num_traj_points = self.joint_pos_mimic_default_traj.shape[1]
-            self.mimic_traj_step_offset = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
-            print(f"mimic traj shape: {self.joint_pos_mimic_default_traj.shape}")
-        else:
-            self.joint_pos_mimic_default_traj = None
-
-        if hasattr(self.cfg, "fingertip_mimic_traj"):
-            self.mimic_traj_step = self.cfg.mimic_traj_step
-            self.mimic_traj_start_scope = self.cfg.mimic_traj_start_scope
-            traj_clip = self.max_episode_length + self.mimic_traj_start_scope[1] + 10
-
-            hand_init_pose = self.cfg.hand_init_pose
-            self.fingertip_mimic_default_traj = torch.from_numpy(np.load(self.cfg.fingertip_mimic_traj)).float().to(self.device)[::self.mimic_traj_step][:traj_clip].reshape(-1, 3)
-            rotate_center = torch.zeros((self.fingertip_mimic_default_traj.shape[0], 3), device=self.device)
-            q_hand = torch.zeros((self.fingertip_mimic_default_traj.shape[0], 4), device=self.device)
-            q_hand[:, 0] = hand_init_pose[1][0]
-            q_hand[:, 1] = hand_init_pose[1][1]
-            q_hand[:, 2] = hand_init_pose[1][2]
-            q_hand[:, 3] = hand_init_pose[1][3]
-            fingertip_mimic_traj_fake_quat = torch.zeros((self.fingertip_mimic_default_traj.shape[0], 4), device=self.device)
-            fingertip_mimic_traj_fake_quat[:, 0] = 1
-            _, self.fingertip_mimic_default_traj = apply_random_rotation_with_center(fingertip_mimic_traj_fake_quat, self.fingertip_mimic_default_traj, rotate_center, q_hand)
-
-            self.fingertip_mimic_default_traj = self.fingertip_mimic_default_traj.reshape(-1, 5, 3).unsqueeze(0).repeat(self.num_envs, 1, 1, 1)
-            self.num_traj_points = self.fingertip_mimic_default_traj.shape[1]
-            self.fingertip_mimic_traj_vec = self.fingertip_mimic_default_traj - torch.roll(self.fingertip_mimic_default_traj, shifts=1, dims=2)
-            self.mimic_traj_step_offset = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
-            print(f"mimic traj shape: {self.fingertip_mimic_traj_vec.shape}")
-        else:
-            self.fingertip_mimic_default_traj = None
-            self.fingertip_mimic_traj_vec = None
 
 
 @torch.jit.script
@@ -563,9 +467,6 @@ def compute_rewards(
     torque_penalty: torch.Tensor, torque_penalty_scale: float,
     work_penalty: torch.Tensor, work_penalty_scale: float,
     object_pos_diff: torch.Tensor, object_pos_reward_scale: float,
-    fingertip_vec_diff: torch.Tensor, fingertip_mimic_penalty_scale: float,
-    mimic_pos_diff_penalty: torch.Tensor, joint_pos_mimic_penalty_scale: float,
-    contact_reward: torch.Tensor, contact_reward_scale: float,
 ):
     reward = rotate_reward * rotate_reward_scale
     reward += object_linvel_penalty * object_linvel_penalty_scale
@@ -573,9 +474,6 @@ def compute_rewards(
     reward += torque_penalty * torque_penalty_scale
     reward += work_penalty * work_penalty_scale
     reward += object_pos_diff * object_pos_reward_scale
-    reward += fingertip_vec_diff * fingertip_mimic_penalty_scale
-    reward += mimic_pos_diff_penalty * joint_pos_mimic_penalty_scale
-    reward += contact_reward * contact_reward_scale
     return reward
 
 @torch.jit.script

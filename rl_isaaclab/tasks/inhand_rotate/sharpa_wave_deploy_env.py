@@ -6,7 +6,6 @@ import json
 import signal
 import os
 import threading
-from datetime import datetime
 
 import gymnasium as gym
 import numpy as np
@@ -19,7 +18,6 @@ import rl_isaaclab.utils.sharpa_pb2 as pb
 from rl_isaaclab.utils.misc import ThreadSafeValue
 from rl_isaaclab.utils.zmq_wrapper import ZmqWrapper
 from rl_isaaclab.utils.keyboard_listener import KeyboardListener
-from rl_isaaclab.utils.state_action_recorder import H5StateActionRecorder
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../utils/python'))
 from sharpa import (
@@ -109,11 +107,9 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             self.recorded_joint_pos = torch.zeros((0, self.num_hand_dofs), dtype=torch.float32, device=self.device)
 
         if self.cfg.keyboard_listen:
-            self.h5_state_action_recorder = H5StateActionRecorder()
             self.keyboard_listen_flag = ThreadSafeValue(2)
             self.keyboard_proc = KeyboardListener(self.keyboard_listen_flag)
             self.last_keyboard_listen_flag = self.keyboard_listen_flag.get()
-            print("press s to start saving data, press d to stop saving and write to file")
             self.keyboard_proc.start()
             signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -194,29 +190,10 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return True
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        if self.cfg.keyboard_listen:
-            self.append_one_pair_data(actions)
         actions = saturate(actions, torch.tensor(-self.cfg.clip_actions), torch.tensor(self.cfg.clip_actions))
         self.actions = actions.clone()
         targets = self.prev_targets + self.cfg.action_scale * self.actions
         self.cur_targets = saturate(targets, self.hand_dof_lower_limits, self.hand_dof_upper_limits)
-
-    def append_one_pair_data(self, actions):
-        if self.keyboard_listen_flag.get() == 1:
-            if self.last_keyboard_listen_flag == 0 and self.keyboard_listen_flag.get() == 1:
-                filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                os.makedirs('StateActionData', exist_ok=True)
-                self.h5_state_action_recorder.new(f'StateActionData/{filename}.h5')
-            save_dict = {
-                "time": time.time(),
-                "action": actions.squeeze().cpu().numpy(),
-                "obs": self.obs_buf["policy"].squeeze().cpu().numpy(),
-                "hist_obs":self.obs_buf["proprio_hist"].squeeze().cpu().numpy(),
-            }
-            self.h5_state_action_recorder.append(save_dict)
-        elif self.last_keyboard_listen_flag == 1 and self.keyboard_listen_flag.get() == 0:
-            self.h5_state_action_recorder.close()
-        self.last_keyboard_listen_flag = self.keyboard_listen_flag.get()
 
     def _apply_action(self) -> None:
         self._refresh_lab()
@@ -414,18 +391,6 @@ def unscale(x, lower, upper):
 
 @torch.jit.script
 def saturate(x: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
-    """Clamps a given input tensor to (lower, upper).
-
-    It uses pytorch broadcasting functionality to deal with batched input.
-
-    Args:
-        x: Input tensor of shape (N, dims).
-        lower: The minimum value of the tensor. Shape is (N, dims) or (dims,).
-        upper: The maximum value of the tensor. Shape is (N, dims) or (dims,).
-
-    Returns:
-        Clamped transform of the tensor. Shape is (N, dims).
-    """
     return torch.max(torch.min(x, upper), lower)
 
 def dof_isaaclab2sharpa(dof_pos):

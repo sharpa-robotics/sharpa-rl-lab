@@ -36,15 +36,8 @@ algorithm:
   # snapshot setting
   save_best_after: 0
   save_frequency: 500
-  max_agent_steps: 5500000000
+  max_agent_steps: 300000000
   # hora setting
   priv_info: True
   priv_info_dim: 8
   priv_info_embed_dim: 8
-
-finetune:
-  batch_size: 1024
-  num_epochs: 20
-  val_split: 0.2
-  prop_hist_len: 30
-  learning_rate: 5e-1

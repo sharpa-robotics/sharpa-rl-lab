@@ -1,11 +1,7 @@
 __pycache__/
-.empty/
 *.pth
 *.pt
 *.STL
 *.npy
 *.egg-info/
 logs/
-outputs/
-*.so
-*.h5

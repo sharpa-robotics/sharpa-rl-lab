@@ -1,3 +1,0 @@
-[submodule "assets/sharpa_ha4/HA4_URDF_XML"]
-	path = assets/sharpa_ha4/HA4_URDF_XML
-	url = ssh://git@code.hesaitech.com:10022/tactile-group/HA4_URDF_XML.git

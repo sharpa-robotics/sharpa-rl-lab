@@ -1,80 +1,12 @@
-import os
-import shlex
-import random
-import subprocess
 import threading
-import signal
 
 import torch
 import numpy as np
-
-def kill_port(port):
-    try:
-        # 查找占用该端口的进程 PID
-        result = subprocess.run(
-            ["lsof", "-t", f"-i:{port}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        pids = result.stdout.split()
-        if not pids:
-            print(f"No process is using port {port}")
-            return
-        # 杀掉每个 PID
-        for pid in pids:
-            os.kill(int(pid), signal.SIGKILL)
-            print(f"Killed PID {pid} using port {port}")
-    except Exception as e:
-        print(f"Error: {e}")
 
 def tprint(*args):
     """Temporarily prints things on the screen"""
     print("\r", end="")
     print(*args, end="")
-
-
-def pprint(*args):
-    """Permanently prints things on the screen"""
-    print("\r", end="")
-    print(*args)
-
-
-def git_hash():
-    cmd = 'git log -n 1 --pretty="%h"'
-    ret = subprocess.check_output(shlex.split(cmd)).strip()
-    if isinstance(ret, bytes):
-        ret = ret.decode()
-    return ret
-
-
-def git_diff_config(name):
-    cmd = f'git diff --unified=0 {name}'
-    ret = subprocess.check_output(shlex.split(cmd)).strip()
-    if isinstance(ret, bytes):
-        ret = ret.decode()
-    return ret
-
-
-def set_np_formatting():
-    """ formats numpy print """
-    np.set_printoptions(edgeitems=30, infstr='inf',
-                        linewidth=4000, nanstr='nan', precision=2,
-                        suppress=False, threshold=10000, formatter=None)
-
-
-def set_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
-    return seed
 
 
 class AverageScalarMeter(object):

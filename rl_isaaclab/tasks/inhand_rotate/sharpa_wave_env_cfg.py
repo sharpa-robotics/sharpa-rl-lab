@@ -259,7 +259,6 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     reset_angle_diff = 45 / 180 * math.pi
     reset_random_quat = False
     # reward
-    # primary reward
     rot_axis = (0, 0, 1)
     angvel_clip_min = -0.5
     angvel_clip_max = 0.5
@@ -268,17 +267,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
-    # auxiliary reward
-    rot_diff_clip_min = -0.025
-    rot_diff_clip_max = 0.025
     object_pos_reward_scale = 0.003
-    fingertip_mimic_penalty_scale = -0.0
-    # fingertip_mimic_traj = 'cache/recorded_traj_50hz.npy'
-    joint_pos_mimic_penalty_scale = -0.0
-    # joint_pos_mimic_traj = 'cache/recorded_joint_pos_traj_20hz.npy'
-    mimic_traj_step = 1 # to match env control freq (20Hz)
-    mimic_traj_start_scope = [0, 200]
-    contact_reward_scale = 0.0
     # grasp cache
     grasp_cache_path = 'cache/sharpa_grasp_linspace'
     # noise
@@ -315,9 +304,6 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     randomize_mass = True
     randomize_mass_lower = 0.01
     randomize_mass_upper = 0.25
-    randomize_joint_pos_offset = False
-    randomize_joint_pos_offset_lower = -0.1
-    randomize_joint_pos_offset_upper = 0.1
     # random forces applied to the object
     force_scale = 2
     random_force_prob_scalar = 0.25

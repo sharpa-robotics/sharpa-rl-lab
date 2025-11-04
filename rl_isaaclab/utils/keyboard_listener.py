@@ -14,12 +14,6 @@ class KeyboardListener:
 
     def _on_press(self, key):
         try:
-            if key.char == 's':
-                print("[Keyboard] Start saving data.")
-                self.keyboard_listen_flag.set(1)
-            elif key.char == 'd':
-                print("[Keyboard] Stop saving and write to file.")
-                self.keyboard_listen_flag.set(0)
             if key.char == 'q':
                 print('[Keyboard] Moving home.')
                 self.keyboard_listen_flag.set(2)

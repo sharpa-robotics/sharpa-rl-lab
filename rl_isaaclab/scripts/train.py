@@ -82,7 +82,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     if agent_cfg["algo"] in ["ProprioAdapt"]:
         load_path_split = agent_cfg["load_path"].split("/")
         if agent_cfg["algorithm"]["experiment_name"] in load_path_split:
-            log_dir = '/' + os.path.join(*(load_path_split[:-2]))
+            log_dir = os.path.join(*(load_path_split[:-2]))
     print(f"Exact experiment name requested from command line: {log_dir}")
 
     # create isaac environment

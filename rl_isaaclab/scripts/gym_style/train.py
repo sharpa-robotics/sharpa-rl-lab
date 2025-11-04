@@ -44,7 +44,6 @@ from datetime import datetime
 
 from rl_isaaclab.algo.ppo.ppo import PPO
 from rl_isaaclab.algo.padapt.padapt import ProprioAdapt
-from rl_isaaclab.algo.finetune.finetune import FineTune
 from rl_isaaclab.wrapper.sharpa_wave_env_wrapper import GymStyleEnvWrapper
 from rl_isaaclab.wrapper.config_wrapper import ConfigWrapper
 
@@ -77,29 +76,23 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     agent_cfg["algorithm"]['minibatch_size'] = min([args_cli.num_envs * 8, 32768])
     if agent_cfg["algo"] == "ProprioAdapt":
         env_cfg.gravity_curriculum = False
-        env_cfg.randomize_joint_pos_offset = False
     config = ConfigWrapper(agent_cfg, env_cfg)
 
     # specify directory for logging experiments
-    log_root_path = os.path.abspath(os.path.join("logs", "gym_style", agent_cfg["algorithm"]["experiment_name"]))
+    log_root_path = os.path.abspath(os.path.join("outputs", "gym_style", agent_cfg["algorithm"]["experiment_name"]))
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_dir = os.path.join(log_root_path, log_dir)
-    if agent_cfg["algo"] in ["ProprioAdapt", "FineTune"]:
+    if agent_cfg["algo"] in ["ProprioAdapt"]:
         load_path_split = agent_cfg["load_path"].split("/")
         if "gym_style" in load_path_split:
             log_dir = '/' + os.path.join(*(load_path_split[:-2]))
     print(f"Exact experiment name requested from command line: {log_dir}")
 
-    if agent_cfg["algo"] != "FineTune":
-        # create isaac environment
-        env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
-        env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
-        agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
-    else:
-        if args_cli.finetune_dataset_dir is None:
-            raise ValueError("Please specify the finetune dataset directory.")
-        agent = eval(agent_cfg["algo"])(output_dir=log_dir, full_config=config, dataset_dir=args_cli.finetune_dataset_dir)
+    # create isaac environment
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+    env = GymStyleEnvWrapper(env, clip_actions=env_cfg.clip_actions)
+    agent = eval(agent_cfg["algo"])(env, output_dir=log_dir, full_config=config)
 
     spec = gym.spec(args_cli.task)
     env_cfg_file = spec.kwargs.get("env_cfg_entry_point", None).split(":")[0].replace(".", "/") + ".py"
@@ -108,7 +101,7 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
     shutil.copy(agent_cfg_file, os.path.join(log_dir, f"agent_cfg_{agent_cfg['algo']}.yaml"))
 
     # load the checkpoint
-    if args_cli.resume or agent_cfg["algo"] in ["ProprioAdapt", "FineTune"]:
+    if args_cli.resume or agent_cfg["algo"] in ["ProprioAdapt"]:
         resume_path = agent_cfg["load_path"]
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
@@ -116,10 +109,9 @@ def main(env_cfg: DirectRLEnvCfg, agent_cfg: dict):
 
     # run training
     agent.train()
-
-    if agent_cfg["algo"] != "FineTune":
-        # close the simulator
-        env.close()
+    
+    # close the simulator
+    env.close()
 
 if __name__ == "__main__":
     # run the main function

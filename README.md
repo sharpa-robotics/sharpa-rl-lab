@@ -1,8 +1,6 @@
 # Overview
 This is a repo for reinforcement learning sim2real rotation demo on SharpaWave, provides a step-by-step guide for training, visualizing and deploying.
 
-This repo is based on Isaaclab and hora.
-
 # Environment Setup
 ## Step 1. Follow the official  Isaaclab installation guide:
 https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html  
@@ -44,13 +42,17 @@ python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --n
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --enable_on_board --load_path ${pth}
 ```
 ## Deploy on SharpaWave (HostComputer Tactile)
-### Step 1. Start tactile zmq_pub in docker
+### Step 1. Setup
+```bash
+mv rl_isaaclab/utils/tactile_pub_zmq.py ${TactileSDK}/py/app/tactile_pub_zmq.py
+```
+### Step 2. Start tactile zmq_pub in docker
 ```bash
 docker exec -it tactile_dev bash
 cd tactile_ws/tactile_sdk
 python py/app/tactile_pub_zmq.py
 ```
-### Step 2. Deploy
+### Step 3. Deploy
 ```bash
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --load_path ${pth}
 ```

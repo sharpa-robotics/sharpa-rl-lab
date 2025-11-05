@@ -265,7 +265,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
             breakpoint()
         else:
             # replay traj until grasp
-            traj = np.load('cache/ini_traj.npy')
+            traj = np.load('cache/deploy_init_traj.npy')
             tactile_force, _ = self.get_tactile_info()
             j = 0
             self.hand.set_joint_position(traj[j])

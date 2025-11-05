@@ -19,7 +19,7 @@ class SharpaWaveEnvCfg:
     use_grasp_cache = False
     grasp_cache_path = 'cache/sharpa_grasp_linspace_0.4-0.6-8'
     # contact
-    enable_on_board = False
+    enable_on_board = None # changed in deploy.py
     enable_tactile = True
     force_scale = 1/1.5
     binary_contact = False

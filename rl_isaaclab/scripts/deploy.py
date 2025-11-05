@@ -9,6 +9,8 @@ parser.add_argument("--seed", type=int, default=42, help="Seed used for the envi
 parser.add_argument("--cache", type=str, default=None, help="Cache path.")
 parser.add_argument("--load_path", type=str, default=None, help="Checkpoint path.")
 parser.add_argument("--device", type=str, default='cuda:0', help="Device to use for training.")
+parser.add_argument("--enable_on_board", action="store_true", help="Enable on-board Tactile.")
+parser.add_argument("--hand_side", type=int, default=None, help="0 for left hand, 1 for right hand.")
 parser.add_argument("--pose_id", type=int, default=0)
 
 args_cli, hydra_args = parser.parse_known_args()
@@ -66,6 +68,8 @@ def custom_task_config(task_id):
 
 @custom_task_config(args_cli.task)
 def main(env_cfg, agent_cfg: dict):
+    env_cfg.enable_on_board = args_cli.enable_on_board
+    env_cfg.hand_side = args_cli.hand_side if args_cli.hand_side is not None else env_cfg.hand_side
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg['seed']
     env_cfg.seed = agent_cfg["seed"]
     agent_cfg["device"] = args_cli.device if args_cli.device is not None else agent_cfg["device"]

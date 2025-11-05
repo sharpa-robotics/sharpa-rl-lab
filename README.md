@@ -1,6 +1,11 @@
 # Overview
 This is a repo for reinforcement learning sim2real rotation demo on SharpaWave, provides a step-by-step guide for training, visualizing and deploying.
 
+<p align="center">
+  <img src="resources/sim.gif" width="45%" />
+  <img src="resources/real.gif" width="45%" />
+</p>
+
 # Environment Setup
 ## Step 1. Follow the official  Isaaclab installation guide:
 https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html  

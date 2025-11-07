@@ -70,5 +70,3 @@ python py/app/tactile_pub_zmq.py
 ```bash
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --hand_side ${0/1} --load_path ${pth}
 ```
-
-# Configure your own task via modifying the config file

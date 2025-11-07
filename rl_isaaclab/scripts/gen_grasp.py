@@ -32,14 +32,9 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
-import os
 import torch
-from datetime import datetime
 
-from rl_isaaclab.algo.ppo.ppo import PPO
-from rl_isaaclab.algo.padapt.padapt import ProprioAdapt
 from rl_isaaclab.wrapper.sharpa_wave_env_wrapper import GymStyleEnvWrapper
-from rl_isaaclab.wrapper.config_wrapper import ConfigWrapper
 
 from isaaclab.envs import DirectRLEnvCfg
 

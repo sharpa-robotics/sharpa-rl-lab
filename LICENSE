@@ -1,0 +1,55 @@
+Copyright (C) 2025 Sharpa Group (“COMPANY”). 
+Portions (C) 2022 Haozhi Qi, licensed under the MIT License
+Portions (C) 2019 Denys88, licensed under MIT License
+Portions (C) 2022-2025 The Isaac Lab Project Developers, licensed under BSD-3-Clause.
+
+This project includes proprietary code developed by COMPANY, as well as open-source components subject to third-party licenses. See below for license details.
+
+1. Proprietary Notice (COMPANY License)
+NOTICE: All information contained herein is, and remains the property of COMPANY. The intellectual and technical concepts contained herein are proprietary to COMPANY and may be covered by Singapore and/or Foreign Patents, patents in process, and are protected by trade secret and applicable copyright laws. Dissemination of this information or reproduction of this material is strictly forbidden unless prior written permission is obtained from COMPANY. Access to the source code contained herein is hereby forbidden to anyone except current COMPANY employees, managers, or third parties who have executed confidentiality and non-disclosure agreements explicitly covering such access.
+Subject to having been granted authorized access by COMPANY (including via written agreement, license, or delivery by COMPANY), the recipient (“Licensee”) is granted a limited, non-exclusive, non-transferable, non-sublicensable license to use, reproduce, and modify the Code solely for the purpose of developing, operating, and commercializing Licensee’s own products or services, provided that such use, reproduction, or modification does not involve disclosure or distribution of the Code in source code form. 
+Licensee shall not, without COMPANY’s prior written consent:
+- disclose, publish, open-source, or otherwise make available any part of the Code to any third party;
+- upload the Code to any public or shared repository;
+- distribute or sublicense the Code (in source code form) to any third party, whether in original or modified form.
+This license does not convey any ownership in or to the Code, nor any rights by implication, estoppel, or otherwise, except as expressly set forth herein.
+If a separate written agreement (including a master services agreement, license agreement, or other contract) is executed between COMPANY and Licensee with respect to the Code, the terms of that agreement shall prevail in the event of any conflict with this License.
+ANY UNAUTHORIZED DISCLOSURE, PUBLICATION, OR DISTRIBUTION OF THIS SOURCE CODE IS STRICTLY PROHIBITED AND MAY RESULT IN CIVIL AND CRIMINAL LIABILITY UNDER APPLICABLE LAW.
+
+2. Third-Party Code Notice
+
+2.1 MIT Licenses
+(a) In-Hand Object Rotation
+Portions of this codebase include software developed by Haozhi Qi (https://arxiv.org/abs/2210.04887), licensed under the MIT License:
+Copyright (c) 2022 Haozhi Qi
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THIS SOFTWARE AND/OR DATA WAS DEPOSITED IN THE BAIR OPEN RESEARCH COMMONS REPOSITORY ON October 10, 2022.
+(b) rl_games
+Portions of this codebase include software developed by Denys88 (https://github.com/Denys88/rl_games/), licensed under the MIT License:
+MIT License
+Copyright (c) 2019 Denys88
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+2.2 BSD 3-Clause Licenses
+(a) Isaac Lab Project
+Portions of this codebase include software developed by the Isaac Lab Project (https://github.com/isaac-sim/IsaacLab), licensed under the BSD 3-Clause License:
+Copyright (c) 2022–2025, The Isaac Lab Project Developers.  
+All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this list of conditions, and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+3. Combined Licensing Clarification
+All proprietary code authored by COMPANY is subject to the restrictions and license terms described in Section 1.  
+All open-source components included in this repository are licensed under their respective open-source licenses, as documented in Section 2 or in individual file headers.
+Use of this repository constitutes acceptance of both the COMPANY license and applicable open-source license(s).

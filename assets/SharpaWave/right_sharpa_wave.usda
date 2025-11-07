@@ -21,7 +21,7 @@
             string boundCamera = "/OmniverseKit_Persp"
         }
         dictionary omni_layer = {
-            string authoring_layer = "./right_sharpa_ha4_overlay.usda"
+            string authoring_layer = "./Right_Sharpa_Wave.usda"
             dictionary locked = {
             }
             dictionary muteness = {
@@ -30,7 +30,7 @@
         dictionary renderSettings = {
         }
     }
-    defaultPrim = "Right_Sharpa_HA4"
+    defaultPrim = "Right_Sharpa_Wave"
     endTimeCode = 1000000
     metersPerUnit = 1
     startTimeCode = 0
@@ -97,9 +97,9 @@ def "Render" (
     }
 }
 
-over "Right_Sharpa_HA4" (
+over "Right_Sharpa_Wave" (
     prepend apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]
-    prepend references = @./right_sharpa_ha4_v2_1/right_sharpa_ha4_v2_1.usd@
+    prepend references = @./right_sharpa_wave/right_sharpa_wave.usd@
 )
 {
     string isaac:namespace (
@@ -151,7 +151,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (0, 0, 0)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_hand_C_MC>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_hand_C_MC>
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
         quatd xformOp:orient = (0.000003826203450348614, 0.7071068705878245, -0.0000011967522068832974, 0.7071066917738946)
@@ -288,7 +288,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (0, 0, 0)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_pinky_PP>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_pinky_PP>
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
         quatd xformOp:orient = (-0.000003634020686080366, 0, -2.491287887079955e-8, 0.9999999999933967)
@@ -359,8 +359,8 @@ over "Right_Sharpa_HA4" (
         )
         vector3f physics:angularVelocity = (0, 0, 0)
         rel physics:filteredPairs = [
-            </Right_Sharpa_HA4/right_hand_C_MC>,
-            </Right_Sharpa_HA4/right_pinky_MC>,
+            </Right_Sharpa_Wave/right_hand_C_MC>,
+            </Right_Sharpa_Wave/right_pinky_MC>,
         ]
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
@@ -438,11 +438,11 @@ over "Right_Sharpa_HA4" (
         )
         vector3f physics:angularVelocity = (0, 0, 0)
         rel physics:filteredPairs = [
-            </Right_Sharpa_HA4/right_thumb_MC>,
-            </Right_Sharpa_HA4/right_index_PP>,
-            </Right_Sharpa_HA4/right_middle_PP>,
-            </Right_Sharpa_HA4/right_ring_PP>,
-            </Right_Sharpa_HA4/right_pinky_PP>,
+            </Right_Sharpa_Wave/right_thumb_MC>,
+            </Right_Sharpa_Wave/right_index_PP>,
+            </Right_Sharpa_Wave/right_middle_PP>,
+            </Right_Sharpa_Wave/right_ring_PP>,
+            </Right_Sharpa_Wave/right_pinky_PP>,
         ]
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
@@ -513,7 +513,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (-0.0000020299358, -0.000031379634, -2.823082e-8)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_hand_C_MC>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_hand_C_MC>
         rel physics:simulationOwner
         vector3f physics:velocity = (-1.3341944e-8, 8.636375e-10, -6.13865e-10)
         quatd xformOp:orient = (0.005595998929966426, 0.7021314528192497, 0.005513466917763243, 0.7120040094272309)
@@ -732,7 +732,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (0, 0, 0)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_pinky_PP>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_pinky_PP>
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
         quatd xformOp:orient = (0.5000037140935115, -0.4999981261747108, -0.5000017918603917, -0.499996367837677)
@@ -853,7 +853,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (0, 0, 0)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_hand_C_MC>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_hand_C_MC>
         rel physics:simulationOwner
         vector3f physics:velocity = (0, 0, 0)
         quatd xformOp:orient = (0.000003826203450348614, 0.7071068705878245, -0.0000011967522068832974, 0.7071066917738946)
@@ -991,8 +991,8 @@ over "Right_Sharpa_HA4" (
         )
         vector3f physics:angularVelocity = (13.229949, -0.09502969, -14.326347)
         rel physics:filteredPairs = [
-            </Right_Sharpa_HA4/right_hand_C_MC>,
-            </Right_Sharpa_HA4/right_thumb_PP>,
+            </Right_Sharpa_Wave/right_hand_C_MC>,
+            </Right_Sharpa_Wave/right_thumb_PP>,
         ]
         rel physics:simulationOwner
         vector3f physics:velocity = (0.008778232, -0.005328706, 0.00814179)
@@ -1028,7 +1028,7 @@ over "Right_Sharpa_HA4" (
             doc = "Name override for prim lookup in base name search"
         )
         vector3f physics:angularVelocity = (12.513415, -0.47869146, -13.890676)
-        rel physics:filteredPairs = </Right_Sharpa_HA4/right_thumb_MC>
+        rel physics:filteredPairs = </Right_Sharpa_Wave/right_thumb_MC>
         rel physics:simulationOwner
         vector3f physics:velocity = (0.01713206, -0.013255437, 0.015895959)
         quatd xformOp:orient = (0.5755037045240243, 0.41409738085455083, -0.07384238608549584, 0.7013316956089508)
@@ -1504,11 +1504,11 @@ over "Right_Sharpa_HA4" (
                     bool isExecution = 1
                 }
             )
-            prepend uint inputs:execIn.connect = </Right_Sharpa_HA4/ActionGraph/on_tick.outputs:tick>
+            prepend uint inputs:execIn.connect = </Right_Sharpa_Wave/ActionGraph/on_tick.outputs:tick>
             custom string inputs:nodeNamespace
             custom string inputs:qosProfile
             custom uint64 inputs:queueSize
-            custom rel inputs:targetPrim = </Right_Sharpa_HA4> (
+            custom rel inputs:targetPrim = </Right_Sharpa_Wave> (
                 customData = {
                     dictionary omni = {
                         dictionary graph = {
@@ -1518,8 +1518,8 @@ over "Right_Sharpa_HA4" (
                 }
             )
             custom double inputs:timeStamp
-            prepend double inputs:timeStamp.connect = </Right_Sharpa_HA4/ActionGraph/on_tick.outputs:time>
-            custom string inputs:topicName = "/isaacsim/right_sharpa_ha4_joint_states"
+            prepend double inputs:timeStamp.connect = </Right_Sharpa_Wave/ActionGraph/on_tick.outputs:time>
+            custom string inputs:topicName = "/isaacsim/Right_Sharpa_Wave_joint_states"
             token node:type = "isaacsim.ros2.bridge.ROS2PublishJointState"
             int node:typeVersion = 1
             uniform token ui:nodegraph:node:expansionState = "open"
@@ -1537,11 +1537,11 @@ over "Right_Sharpa_HA4" (
                     bool isExecution = 1
                 }
             )
-            prepend uint inputs:execIn.connect = </Right_Sharpa_HA4/ActionGraph/on_playback_tick.outputs:tick>
+            prepend uint inputs:execIn.connect = </Right_Sharpa_Wave/ActionGraph/on_playback_tick.outputs:tick>
             custom string inputs:nodeNamespace
             custom string inputs:qosProfile
             custom uint64 inputs:queueSize
-            custom string inputs:topicName = "/isaacsim/right_sharpa_ha4_joint_actions"
+            custom string inputs:topicName = "/isaacsim/Right_Sharpa_Wave_joint_actions"
             token node:type = "isaacsim.ros2.bridge.ROS2SubscribeJointState"
             int node:typeVersion = 2
             custom double[] outputs:effortCommand
@@ -1568,14 +1568,14 @@ over "Right_Sharpa_HA4" (
                     bool isExecution = 1
                 }
             )
-            prepend uint inputs:execIn.connect = </Right_Sharpa_HA4/ActionGraph/ros2_subscribe_joint_state.outputs:execOut>
+            prepend uint inputs:execIn.connect = </Right_Sharpa_Wave/ActionGraph/ros2_subscribe_joint_state.outputs:execOut>
             custom int[] inputs:jointIndices
             custom token[] inputs:jointNames
-            prepend token[] inputs:jointNames.connect = </Right_Sharpa_HA4/ActionGraph/ros2_subscribe_joint_state.outputs:jointNames>
+            prepend token[] inputs:jointNames.connect = </Right_Sharpa_Wave/ActionGraph/ros2_subscribe_joint_state.outputs:jointNames>
             custom double[] inputs:positionCommand
-            prepend double[] inputs:positionCommand.connect = </Right_Sharpa_HA4/ActionGraph/ros2_subscribe_joint_state.outputs:positionCommand>
+            prepend double[] inputs:positionCommand.connect = </Right_Sharpa_Wave/ActionGraph/ros2_subscribe_joint_state.outputs:positionCommand>
             custom string inputs:robotPath
-            custom rel inputs:targetPrim = </Right_Sharpa_HA4> (
+            custom rel inputs:targetPrim = </Right_Sharpa_Wave> (
                 customData = {
                     dictionary omni = {
                         dictionary graph = {

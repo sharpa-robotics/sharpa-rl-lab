@@ -3,10 +3,10 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sharpa_tac_rl"
-version = "0.1.0"
-description = "sharpa rl with tactile"
-authors = [{ name = "renrenyuan", email = "renyuan.ren@sharpa.com" }]
+name = "sharpawave-rl-lab"
+version = "1.0.0"
+description = "sharpawave rl repo"
+authors = [{ name = "sharpa" }]
 dependencies = []
 requires-python = ">=3.10"
 

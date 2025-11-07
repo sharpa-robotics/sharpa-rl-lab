@@ -20,7 +20,6 @@ from omegaconf import OmegaConf
 import torch
 from datetime import datetime
 
-from rl_isaaclab.algo.ppo.ppo import PPO
 from rl_isaaclab.algo.padapt.padapt import ProprioAdapt
 from rl_isaaclab.wrapper.sharpa_wave_deploy_env_wrapper import GymStyleEnvWrapper
 from rl_isaaclab.wrapper.config_wrapper import ConfigWrapper

@@ -68,7 +68,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
             usd_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  f"../../../assets/SharpaWave/right_sharpa_ha4_overlay.usda"),
+                                  f"../../../assets/SharpaWave/right_sharpa_wave.usda"),
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -276,7 +276,6 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     contact_sensor_noise = 0.01
     # align real
     dof_limits_scale = 0.9
-    current_coef = 0.7
     # randomize
     scale_range = [0.5, 0.5, 1]
     events.rand_params(scale_range)

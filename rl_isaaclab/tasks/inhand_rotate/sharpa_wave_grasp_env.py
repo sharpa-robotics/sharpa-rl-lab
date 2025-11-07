@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 import time
+import os
 
 import numpy as np
 import torch
@@ -70,6 +71,7 @@ class SharpaWaveInhandRotateGraspEnv(SharpaWaveInhandRotateEnv):
             save_data = torch.zeros((0, 29), dtype=torch.float32, device=self.device)
             for saved_grasping_states in self.saved_grasping_states:
                 save_data = torch.cat([save_data, saved_grasping_states], dim=0)
+            os.makedirs('cache', exist_ok=True)
             name = f'cache/sharpa_grasp_linspace_{self.cfg.scale_range[0]}-{self.cfg.scale_range[1]}-{self.cfg.scale_range[2]}.npy'
             np.save(name, save_data.cpu().numpy())
             exit()

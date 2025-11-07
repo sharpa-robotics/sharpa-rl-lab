@@ -112,9 +112,6 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
                                "right_ring_elastomer", 
                                "right_pinky_elastomer"]]
 
-        # align real
-        self.hand.actuators['joints'].effort_limit *= self.cfg.current_coef
-
         # randomize
         if self.cfg.randomize_friction:
             rand_friction = torch.empty(self.num_envs).uniform_(self.cfg.randomize_friction_scale_lower, self.cfg.randomize_friction_scale_upper)

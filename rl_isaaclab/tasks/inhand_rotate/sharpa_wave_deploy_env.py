@@ -86,13 +86,6 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
              1.7453, 0.3491, 1.7453, 1.3963, 1.3963, 1.3963, 1.7453, 1.3963, 0.3491, 1.3963, 1.7453], 
         device=self.device).reshape(1, -1) * self.cfg.dof_limits_scale
 
-        # grasp_cache
-        if self.cfg.use_grasp_cache:
-            if self.cfg.grasp_cache_path:
-                self.saved_grasping_states = torch.from_numpy(np.load(f"{self.cfg.grasp_cache_path}.npy")).float().to(self.device)
-            else:
-                self.saved_grasping_states = None
-
         # contact buffers
         self._contact_body_ids = torch.tensor([0, 1, 2, 3, 4], dtype=torch.long)
         self._contact_body_ids_disable = torch.tensor([], dtype=torch.long)
@@ -244,40 +237,20 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.episode_length_buf[env_ids] = 0
 
         # reset hand
-        if self.cfg.use_grasp_cache:
-            # pose cache
-            if self.saved_grasping_states is not None:
-                sampled_pose = self.saved_grasping_states[[self.cfg.pose_id]].clone()
-            else:
-                raise RuntimeError("No saved grasping states found")
-            
-            dof_pos = sampled_pose[:, :22]
-            self.prev_targets[env_ids] = dof_pos.clone()
-            self.cur_targets[env_ids] = dof_pos.clone()
-            
-            init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
-            init_joint_pos[5:] = 0.0
-            self.hand.set_joint_position(init_joint_pos)
-            time.sleep(3)
-            init_joint_pos = dof_isaaclab2sharpa(dof_pos.squeeze()).cpu().numpy()
-            self.hand.set_joint_position(init_joint_pos)
-            time.sleep(3)
-            breakpoint()
-        else:
-            # replay traj until grasp
-            traj = np.load('cache/deploy_init_traj.npy')
-            tactile_force, _ = self.get_tactile_info()
-            j = 0
+        # replay traj until grasp
+        traj = np.load('cache/deploy_init_traj.npy')
+        tactile_force, _ = self.get_tactile_info()
+        j = 0
+        self.hand.set_joint_position(traj[j])
+        while torch.max(tactile_force) < 1 and j + 3 < len(traj):
+            j += 1
             self.hand.set_joint_position(traj[j])
-            while torch.max(tactile_force) < 1 and j + 3 < len(traj):
-                j += 1
-                self.hand.set_joint_position(traj[j])
-                time.sleep(0.03)
-                tactile_force, _ = self.get_tactile_info()
-                
-            print(f"pick num {j} traj in {len(traj)}")
-            self.prev_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
-            self.cur_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
+            time.sleep(0.03)
+            tactile_force, _ = self.get_tactile_info()
+            
+        print(f"pick num {j} traj in {len(traj)}")
+        self.prev_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
+        self.cur_targets[env_ids] = dof_sharpa2isaaclab(torch.tensor(traj[j+2], dtype=torch.float32, device=self.device))
 
         self._refresh_lab()
 

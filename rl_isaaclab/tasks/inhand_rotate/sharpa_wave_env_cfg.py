@@ -22,6 +22,9 @@ from rl_isaaclab.utils.modified_events import randomize_rigid_body_scale
 @configclass
 class EventCfg:
     def rand_params(self, scale_range: list[float, float, int]):
+        '''
+        Randomize the scale of the object.
+        '''
         self.randomize_scale = EventTermCfg(
             func=randomize_rigid_body_scale,
             mode="prestartup",
@@ -35,10 +38,10 @@ class EventCfg:
 @configclass
 class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 20.0
+    episode_length_s = 20.0 # Episode length in seconds
     action_space = 22
     observation_space = 192
-    prop_hist_len = 30
+    prop_hist_len = 30      # Proprioception hist frames used in policy
     priv_info_dim = 8
     state_space = 0
     asymmetric_obs = False
@@ -68,7 +71,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/Robot",
         spawn=sim_utils.UsdFileCfg(
             usd_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  f"../../../assets/SharpaWave/right_sharpa_ha4_overlay.usda"),
+                                  f"../../../assets/SharpaWave/right_sharpa_wave.usda"),
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -259,52 +262,52 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # reset
     reset_height_lower = 0.59906
     reset_height_upper = 0.63906
-    reset_angle_diff = 45 / 180 * math.pi
-    reset_random_quat = False
+    reset_angle_diff = 45 / 180 * math.pi # Not used.
+    reset_random_quat = False             # If True, the quaternion of the hand and object is randomized.
     # reward
-    rot_axis = (0, 0, 1)
+    rot_axis = (0, 0, 1)                  # Rotation axis used in reward function.
     angvel_clip_min = -0.5
-    angvel_clip_max = 0.5
-    rotate_reward_scale = 2.5
+    angvel_clip_max = 0.5                 
+    rotate_reward_scale = 2.5            
     object_linvel_penalty_scale = -0.3
     pos_diff_penalty_scale = -0.4
     torque_penalty_scale = -0.1
     work_penalty_scale = -0.5
     object_pos_reward_scale = 0.003
     # grasp cache
-    grasp_cache_path = 'cache/sharpa_grasp_linspace'
+    grasp_cache_path = 'cache/sharpa_grasp_linspace' # Grasp cache used in training.
     # noise
     joint_noise_scale = 0.02
     # contact
-    enable_tactile = True
-    binary_contact = False
-    enable_contact_pos = False
-    disable_tactile_ids = []
-    contact_smooth = 0.5
-    contact_threshold = 0.05
-    contact_latency = 0.005
-    contact_sensor_noise = 0.01
+    enable_tactile = True       # If True, the tactile sensor is enabled.
+    binary_contact = False      # If True, the output tactile force will be binarized according to the contact_threshold.
+    enable_contact_pos = False  # Not tested yet. If True, the tactile sensor will output the contact position.
+    disable_tactile_ids = []    # Set 0 to according tactile ids.
+                                # 0, 1, 2, 3, 4 for thumb, index, middle, ring, pinky finger.
+    contact_smooth = 0.5        # Smoothing factor for tactile force.
+    contact_threshold = 0.05    # Binary contact force threshold, only used when binary_contact is True.
+    contact_latency = 0.005     # Contact latency.
+    contact_sensor_noise = 0.01 # Contact sensor noise, only used when binary_contact is True.
     # align real
-    dof_limits_scale = 0.9
-    current_coef = 0.7
+    dof_limits_scale = 0.9      # Multiply a scale to the URDF joint limits.
     # randomize
-    scale_range = [0.5, 0.5, 1]
+    scale_range = [0.5, 0.5, 1] # Scale size of the object, [lower, upper, num].
     events.rand_params(scale_range)
-    randomize_pd_gains = True
+    randomize_pd_gains = True   # Randomize PD gains.
     randomize_p_gain_scale_lower = 0.5
     randomize_p_gain_scale_upper = 2
     randomize_d_gain_scale_lower = 0.5
     randomize_d_gain_scale_upper = 2
-    randomize_friction = True
+    randomize_friction = True   # Randomize friction.
     randomize_friction_scale_lower = 0.5
     randomize_friction_scale_upper = 2.0
     elastomer_base_friction = 0.8
     metal_base_friction = 0.1
     object_base_friction = 0.5
-    randomize_com = True
+    randomize_com = True        # Randomize center of mass.
     randomize_com_lower = -0.01
     randomize_com_upper = 0.01
-    randomize_mass = True
+    randomize_mass = True       # Randomize object mass.
     randomize_mass_lower = 0.01
     randomize_mass_upper = 0.25
     # random forces applied to the object
@@ -313,4 +316,4 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     force_decay = 0.9
     force_decay_interval = 0.08
     # curriculum
-    gravity_curriculum = True
+    gravity_curriculum = True # If True, gravity is gradually increased during training, upper limits is 10m/s^2.

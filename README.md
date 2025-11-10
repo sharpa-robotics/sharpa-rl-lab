@@ -35,6 +35,7 @@ python rl_isaaclab/scripts/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --
 ```
 ## Step 3: Distillation
 ```bash
+# last.pth is recommended if curriculum is enabled
 python rl_isaaclab/scripts/train.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --headless --algorithm ProprioAdapt --load_path ${pth}
 ```
 

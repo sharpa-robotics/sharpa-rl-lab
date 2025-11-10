@@ -283,7 +283,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     binary_contact = False      # If True, the output tactile force will be binarized according to the contact_threshold.
     enable_contact_pos = False  # Not tested yet. If True, the tactile sensor will output the contact position.
     disable_tactile_ids = []    # Set 0 to according tactile ids.
-                                # 0, 1, 2, 3, 4 for thumb, index, middle, ring, pinky finger.
+                                # 0, 1, 2, 3, 4 are thumb, index, middle, ring, pinky finger, respectively.
     contact_smooth = 0.5        # Smoothing factor for tactile force.
     contact_threshold = 0.05    # Binary contact force threshold, only used when binary_contact is True.
     contact_latency = 0.005     # Contact latency.
@@ -291,7 +291,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # align real
     dof_limits_scale = 0.9      # Multiply a scale to the URDF joint limits.
     # randomize
-    scale_range = [0.5, 0.5, 1] # Scale size of the object, [lower, upper, num].
+    scale_range = [0.4, 0.6, 8] # Scale size of the object, [lower, upper, num].
     events.rand_params(scale_range)
     randomize_pd_gains = True   # Randomize PD gains.
     randomize_p_gain_scale_lower = 0.5
@@ -317,3 +317,5 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     force_decay_interval = 0.08
     # curriculum
     gravity_curriculum = True # If True, gravity is gradually increased during training, upper limits is 10m/s^2.
+    # debug
+    debug_show_axes = True    # If True, visualize the coordinate axes of the object.

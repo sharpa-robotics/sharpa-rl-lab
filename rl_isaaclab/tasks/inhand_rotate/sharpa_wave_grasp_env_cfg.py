@@ -277,7 +277,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # align real
     dof_limits_scale = 0.9
     # randomize
-    scale_range = [0.5, 0.5, 1]
+    scale_range = [0.4, 0.6, 8]
     events.rand_params(scale_range)
     randomize_pd_gains = False
     randomize_p_gain_scale_lower = 0.5

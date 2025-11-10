@@ -36,6 +36,23 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
 
         self.num_hand_dofs = self.hand.num_joints
 
+        self._axes_visualizer = None
+        if getattr(self.cfg, 'debug_show_axes', True):
+            try:
+                from isaaclab.markers import VisualizationMarkers
+                from isaaclab.markers.config import FRAME_MARKER_CFG
+                # create frame marker configuration for cylinder
+                axes_marker_cfg = FRAME_MARKER_CFG.replace(
+                    prim_path="/Visuals/CylinderAxes"
+                )
+                # adjust the axes size based on config (default 0.06 m)
+                axes_length = getattr(self.cfg, 'vis_cylinder_axes_length', 0.06)
+                axes_marker_cfg.markers["frame"].scale = (axes_length, axes_length, axes_length)
+                # create the visualization marker
+                self._axes_visualizer = VisualizationMarkers(axes_marker_cfg)
+            except Exception as e:
+                self._axes_visualizer = None
+
         # buffers for position targets
         self.prev_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
         self.cur_targets = torch.zeros((self.num_envs, self.num_hand_dofs), dtype=torch.float, device=self.device)
@@ -347,6 +364,16 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
         self.object_velocities = self.object.data.root_vel_w
         self.object_linvel = self.object.data.root_lin_vel_w
         self.object_angvel = self.object.data.root_ang_vel_w
+
+        # visualize coordinate axes for cylinder using VisualizationMarkers
+        if getattr(self.cfg, 'debug_show_axes', True) and self._axes_visualizer is not None and self.num_envs > 0:
+            try:
+                # world poses are already with env origins; add back origins for vis API if needed
+                cyl_pos_w = self.object.data.root_pos_w
+                cyl_quat_w = self.object.data.root_quat_w
+                self._axes_visualizer.visualize(translations=cyl_pos_w, orientations=cyl_quat_w)
+            except Exception:
+                pass
 
     def compute_observations(self):
         # contact

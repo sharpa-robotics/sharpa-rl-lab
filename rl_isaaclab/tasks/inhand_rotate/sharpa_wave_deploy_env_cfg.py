@@ -1,6 +1,6 @@
 class SharpaWaveEnvCfg:
     # keyboard listener
-    keyboard_listen = False # If True, policy will not automatically start, 
+    keyboard_listen = True  # If True, policy will not automatically start, 
                             # press 'e' to start, press 'w' to freeze, press 'q' to go home.
                             # Otherwise, policy will start automatically
     # env

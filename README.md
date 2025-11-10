@@ -49,9 +49,11 @@ python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --n
 ```
 
 # Deploy
-### Before 
+## Prepare the object
+A cylinder with radius of 24mm and height of 60mm via 3D priting is recommended under default configuration.
 ## Deploy on SharpaWave (OnBoard Tactile)
 ```bash
+# INFOℹ️: Keyboard control is enabled by default. Press 'e' to start, press 'w' to freeze, press 'q' to go home.
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --enable_on_board --hand_side ${0/1} --load_path ${pth}
 ```
 ## Deploy on SharpaWave (HostComputer Tactile)
@@ -68,6 +70,7 @@ python py/app/tactile_pub_zmq.py
 ```
 ### Step 3. Deploy
 ```bash
+# INFOℹ️: Keyboard control is enabled by default. Press 'e' to start, press 'w' to freeze, press 'q' to go home.
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --hand_side ${0/1} --load_path ${pth}
 ```
 

@@ -76,7 +76,6 @@ def main(env_cfg, agent_cfg: dict):
     env_cfg.pose_id = args_cli.pose_id
     agent_cfg["algo"] = 'ProprioAdapt'
     agent_cfg["load_path"] = args_cli.load_path if args_cli.load_path is not None else agent_cfg["load_path"]
-    env_cfg.grasp_cache_path = args_cli.cache if args_cli.cache is not None else env_cfg.grasp_cache_path
     config = ConfigWrapper(agent_cfg, env_cfg, test=True)
 
     # specify directory for logging experiments

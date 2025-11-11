@@ -1,0 +1,30 @@
+services:
+  sharpa_dev:
+    image: sharpadev/sharpawave-rl-deploy:1.0.0
+    working_dir: /root
+    container_name: sharpawave_rl_dev
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    network_mode: host
+    privileged: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${sharpawave-rl-lab}:/root/sharpawave-rl-lab
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse:/dev/fuse
+    security_opt:
+      - apparmor:unconfined
+    stdin_open: true
+    tty: true
+    restart: always

@@ -17,11 +17,6 @@ conda activate env_isaaclab
 cd sharpa_tac_rl 
 pip install -e .
 ```
-## 1.3. Configure SharpaWaveSDK (For Deploy)
-```bash
-# INFOℹ️: Install SharpaWaveSDK following the official user manual. ${SharpaWaveSDK} is the root path of the SDK.
-cp -r ${SharpaWaveSDK}/python rl_isaaclab/utils/python
-```
 
 # 2. Training
 ## 2.1. Generate grasp cache
@@ -53,23 +48,31 @@ python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --n
 ## 4.1. Prepare the object
 A cylinder with radius of 24mm and height of 60mm via 3D priting is recommended under default configuration.
 ## 4.2. Deploy on SharpaWave (HostComputer Tactile, Recommended)
-### 4.2.1. Configure TactileSDK for ZMQ pub
+### 4.2.1. Configure docker
 ```bash
-# INFOℹ️: Install TactileSDK following <Steps to Acquire 180 Hz High-Frame-Rate High-Performance Tactile Information>. ${TactileSDK} is the root path of the Tactile SDK.
-mv rl_isaaclab/utils/tactile_pub_zmq.py ${TactileSDK}/py/app/tactile_pub_zmq.py
+# INFOℹ️: Install docker and nvidia-ctk following steps 1-4 in <Steps to Acquire 180 Hz High-Frame-Rate High-Performance Tactile Information>.
+cd rl_isaaclab/utils
+# Configure docker-compose, substitute ${sharpa-rl-lab} with this repo path.
+docker compose up -d
+docker exec -it sharpawave_rl_dev bash
+rm -r ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
+cp -r ~/SharpaWaveSDK/python/sharpa/ ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
+cd ~/sharpawave-rl-lab/
+python3 -m pip install -e .
 ```
-### 4.2.2. Start ZMQ pub in docker
-```bash
-docker exec -it tactile_dev bash
-cd tactile_ws/tactile_sdk
-python py/app/tactile_pub_zmq.py
-```
-### 4.2.3. Deploy
+### 4.2.2. Deploy
 ```bash
 # INFOℹ️: Keyboard control is enabled by default. Press 'e' to start, press 'w' to freeze, press 'q' to go home.
-python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --hand_side ${0/1} --load_path ${pth}
+python3 rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --hand_side ${0/1} --load_path ${pth}
 ```
 ## 4.3. Deploy on SharpaWave (OnBoard Tactile)
+### 4.3.1. Configure SharpaWaveSDK (For Deploy)
+```bash
+# INFOℹ️: Install SharpaWaveSDK following the official user manual. ${SharpaWaveSDK} is the root path of the SDK.
+rm -r rl_isaaclab/utils/python
+cp -r ${SharpaWaveSDK}/python rl_isaaclab/utils/python
+```
+### 4.3.2. Deploy
 ```bash
 # INFOℹ️: Keyboard control is enabled by default. Press 'e' to start, press 'w' to freeze, press 'q' to go home.
 python rl_isaaclab/scripts/deploy.py --task Isaac-Inhand-Rotate-Deploy-Sharpa-Wave-v0 --enable_on_board --hand_side ${0/1} --load_path ${pth}

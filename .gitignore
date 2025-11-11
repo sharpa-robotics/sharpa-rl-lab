@@ -5,3 +5,4 @@ __pycache__/
 *.npy
 *.egg-info/
 logs/
+python/

@@ -291,7 +291,7 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # align real
     dof_limits_scale = 0.9      # Multiply a scale to the URDF joint limits.
     # randomize
-    scale_range = [0.4, 0.6, 8] # Scale size of the object, [lower, upper, num].
+    scale_range = [0.5, 0.5, 1] # Scale size of the object, [lower, upper, num].
     events.rand_params(scale_range)
     randomize_pd_gains = True   # Randomize PD gains.
     randomize_p_gain_scale_lower = 0.5

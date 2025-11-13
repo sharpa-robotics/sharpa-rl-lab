@@ -11,6 +11,8 @@ This is a repo for reinforcement learning sim2real rotation demo on SharpaWave, 
 Install [IsaacLab](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html). 
 
 Ubuntu 22.04, conda environment, release/2.2.0 and release/2.3.0 have been tested.
+
+CAUTION⚠️: A minimum of 32GB RAM is required. For specific requirements, please refer to [requirements](https://docs.isaacsim.omniverse.nvidia.com/latest/installation/requirements.html).
 ## 1.2. Install this repo:  
 ```bash
 conda activate env_isaaclab 

@@ -318,4 +318,4 @@ class SharpaWaveEnvCfg(DirectRLEnvCfg):
     # curriculum
     gravity_curriculum = True # If True, gravity is gradually increased during training, upper limits is 10m/s^2.
     # debug
-    debug_show_axes = True    # If True, visualize the coordinate axes of the object.
+    debug_show_axes = False   # If True, visualize the coordinate axes of the object.

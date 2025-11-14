@@ -159,7 +159,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if error.code != 0:
             print(f"Failed to set control mode: {error.message}")
             return False
-        error = self.hand.set_speed_coeff(0.1)
+        error = self.hand.set_speed_coeff(0.3)
         if error.code != 0:
             print(f"Failed to set speed coeff: {error.message}")
             return False
@@ -218,10 +218,11 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         return self.obs_buf, None, None, None, None
 
     def _reset_idx(self, env_ids: Sequence[int] | None):
-        error = self.hand.set_speed_coeff(0.1)
+        error = self.hand.set_speed_coeff(0.3)
         error = self.hand.set_current_coeff(self.cfg.current_coef)
         self.hand.set_joint_position([0] * 22)
         time.sleep(3)
+
         if self.cfg.keyboard_listen:
             if self.keyboard_listen_flag.get() == 2: return
             self.keyboard_listen_flag.set(5)
@@ -229,6 +230,9 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if env_ids is None:
             env_ids = self.hand._ALL_INDICES
         self.episode_length_buf[env_ids] = 0
+
+        error = self.hand.set_speed_coeff(self.cfg.speed_coef)
+        error = self.hand.set_current_coeff(self.cfg.current_coef)
 
         # reset hand
         # replay traj until grasp
@@ -252,9 +256,6 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         self.last_contacts[env_ids] = 0
         self.proprio_hist_buf[env_ids] = 0
         self.at_reset_buf[env_ids] = 1
-
-        error = self.hand.set_speed_coeff(self.cfg.speed_coef)
-        error = self.hand.set_current_coeff(self.cfg.current_coef)
 
     def _refresh_lab(self):
         self.hand_dof_pos = dof_sharpa2isaaclab(torch.tensor(self.hand.get_states().angles)).reshape(1, -1).to(self.device)

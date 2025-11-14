@@ -55,7 +55,8 @@ A cylinder with radius of 24mm and height of 60mm via 3D priting is recommended 
 # INFOℹ️: Install docker and nvidia-ctk following steps 1-4 in <Steps to Acquire 180 Hz High-Frame-Rate High-Performance Tactile Information>.
 cd rl_isaaclab/utils
 # Configure docker-compose, substitute ${sharpa-rl-lab} with this repo path.
-docker compose up -d
+xhost +local:root
+USER_ID=$(id -u) GROUP_ID=$(id -g) docker compose up -d
 docker exec -it sharpawave_rl_dev bash
 rm -r ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
 cp -r ~/SharpaWaveSDK/python/sharpa/ ~/sharpawave-rl-lab/rl_isaaclab/utils/python/

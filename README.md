@@ -47,8 +47,9 @@ python rl_isaaclab/scripts/play.py --task Isaac-Inhand-Rotate-Sharpa-Wave-v0 --n
 ```
 
 # 4. Deploy
-## 4.1. Prepare the object
-A cylinder with radius of 24mm and height of 60mm via 3D priting is recommended under default configuration.
+## 4.1. Prepare SharpaWave and object
+1. Calibrate SharpaWave through SharpaPilot. 
+2. A cylinder with radius of 24mm and height of 60mm via 3D priting is recommended under default configuration.
 ## 4.2. Deploy on SharpaWave (HostComputer Tactile, Recommended)
 ### 4.2.1. Configure docker
 ```bash

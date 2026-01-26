@@ -136,8 +136,8 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             rand_friction_object = rand_friction.clone() * self.cfg.object_base_friction
             self.set_friction(self.object, rand_friction_object, self.num_envs)
             # IMPORTANT, ELASTOMER MATERIAL IDS
-            material_elastomer_ids = [19, 20, 22, 23, 25]
-            rand_friction_hand = rand_friction.clone().repeat(1, 26) * self.cfg.metal_base_friction # WHY 26?
+            material_elastomer_ids = [19, 20, 22, 24, 25]
+            rand_friction_hand = rand_friction.clone().repeat(1, 26) * self.cfg.metal_base_friction
             rand_friction_hand[:, material_elastomer_ids] = rand_friction_hand[:, material_elastomer_ids] / self.cfg.metal_base_friction * self.cfg.elastomer_base_friction
             self.set_friction(self.hand, rand_friction_hand, self.num_envs)
             self.priv_info_buf[:, 3] = rand_friction.squeeze()

@@ -370,6 +370,9 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         force[self.cfg.disable_tactile_ids] = 0.0
         contact_pos[self.cfg.disable_tactile_ids] = 0.0
 
+        if not self.cfg.enable_contact_pos:
+            contact_pos[:] = 0.0
+
         # check thresh
         force *= self.cfg.force_scale
         force[force < self.cfg.contact_threshold] = 0.0

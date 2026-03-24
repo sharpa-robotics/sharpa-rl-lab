@@ -60,7 +60,7 @@ xhost +local:root
 USER_ID=$(id -u) GROUP_ID=$(id -g) docker compose up -d
 docker exec -it sharpawave_rl_dev bash
 rm -r ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
-cp -r ~/SharpaWaveSDK/python/sharpa/ ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
+cp -r ~/sharpa-wave-sdk/python/sharpa/ ~/sharpawave-rl-lab/rl_isaaclab/utils/python/
 cd ~/sharpawave-rl-lab/
 python3 -m pip install -e .
 ```

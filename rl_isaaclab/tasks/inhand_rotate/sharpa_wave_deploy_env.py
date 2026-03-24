@@ -137,6 +137,12 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if not self.initialize():
             print("Error: Failed to initialize hand")
             exit(1)
+        custom_config_path = "/root/.sharpa-pilot/config/tactile_config.json"
+        error = self.hand.set_tactile_config_file(custom_config_path)
+        if error.code == 0:
+            print(f"Custom tactile config set for device: {custom_config_path}")
+        else:
+            print(f"Failed to set tactile config for device: {error.message}")
         self.hand.start()
 
     def auto_detect_hand(self):

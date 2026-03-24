@@ -1,6 +1,6 @@
 services:
   sharpa_dev:
-    image: sharpadev/sharpawave-rl-deploy:1.0.0
+    image: sharpadev/sharpawave-rl-deploy:1.0.2
     working_dir: /root
     container_name: sharpawave_rl_dev
     runtime: nvidia

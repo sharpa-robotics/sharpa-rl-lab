@@ -49,3 +49,28 @@ class ThreadSafeValue:
     def get(self):
         with self._lock:
             return self._value
+
+
+_ISAACLAB2SHARPA_IDX = torch.tensor(
+    [4, 9, 14, 19, 21, 0, 5, 10, 15, 1, 6, 11, 16, 3, 8, 13, 18, 2, 7, 12, 17, 20],
+    dtype=torch.long
+)
+
+_SHARPA2ISAACLAB_IDX = torch.tensor(
+    [5, 9, 17, 13, 0, 6, 10, 18, 14, 1, 7, 11, 19, 15, 2, 8, 12, 20, 16, 3, 21, 4],
+    dtype=torch.long
+)
+
+def dof_isaaclab2sharpa(dof_pos: torch.Tensor) -> torch.Tensor:
+    """
+    dof_pos: (..., D)
+    """
+    idx = _ISAACLAB2SHARPA_IDX.to(dof_pos.device)
+    return dof_pos.index_select(dim=-1, index=idx)
+
+def dof_sharpa2isaaclab(dof_pos: torch.Tensor) -> torch.Tensor:
+    """
+    dof_pos: (..., D)
+    """
+    idx = _SHARPA2ISAACLAB_IDX.to(dof_pos.device)
+    return dof_pos.index_select(dim=-1, index=idx)

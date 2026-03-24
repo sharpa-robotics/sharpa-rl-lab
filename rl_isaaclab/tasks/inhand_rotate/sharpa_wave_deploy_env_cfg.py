@@ -10,6 +10,7 @@ class SharpaWaveEnvCfg:
     prop_hist_len = 30
     asymmetric_obs = False
     # control
+    warm_up = True          # If True, the hand will warm up before starting the policy.
     control_freq = 20       # Used for modifying the control frequency.
                             # Be aware, it only a time sleep during policy,
                             # which is not exactly the same as the real control frequency.

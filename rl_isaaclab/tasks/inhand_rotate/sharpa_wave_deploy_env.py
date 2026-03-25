@@ -7,7 +7,6 @@ import json
 
 import gymnasium as gym
 import numpy as np
-import cv2
 import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
@@ -137,7 +136,7 @@ class SharpaWaveInhandRotateDeployEnv(gym.Env):
         if not self.initialize():
             print("Error: Failed to initialize hand")
             exit(1)
-        custom_config_path = "/root/.sharpa-pilot/config/tactile_config.json"
+        custom_config_path = "/root/.sharpa-pilot/config/tactile.json"
         error = self.hand.set_tactile_config_file(custom_config_path)
         if error.code == 0:
             print(f"Custom tactile config set for device: {custom_config_path}")

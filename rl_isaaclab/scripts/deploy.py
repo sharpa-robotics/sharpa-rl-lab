@@ -12,11 +12,14 @@ parser.add_argument("--device", type=str, default='cuda:0', help="Device to use 
 parser.add_argument("--enable_on_board", action="store_true", help="Enable on-board Tactile.")
 parser.add_argument("--hand_side", type=int, default=None, help="0 for left hand, 1 for right hand.")
 parser.add_argument("--pose_id", type=int, default=0)
+parser.add_argument("--log_data", action="store_true", help="Log latent vectors and tactile forces.")
+parser.add_argument("--log_save_dir", type=str, default="logs/latent_analysis", help="Directory to save logged data.")
 
 args_cli, hydra_args = parser.parse_known_args()
 
 import gymnasium as gym
 from omegaconf import OmegaConf
+import numpy as np
 import torch
 from datetime import datetime
 
@@ -97,13 +100,44 @@ def main(env_cfg, agent_cfg: dict):
     agent.restore_test(resume_path)
     agent.set_eval()
     obs_dict = agent.env.reset()
-    while True:
-        input_dict = {
-            'obs': agent.running_mean_std(obs_dict['obs']),
-            'proprio_hist': agent.sa_mean_std(obs_dict['proprio_hist'].detach()),
-        }
-        mu = agent.model.act_inference(input_dict)
-        obs_dict, r, done, info = agent.env.step(mu)
+
+    # logging setup
+    latent_log = []   # (T, 8)  - adapt_tconv output after tanh
+    force_log  = []   # (T, 5)  - [thumb, index, middle, ring, pinky]
+    action_log = []   # (T, 22) - policy output (mu)
+
+    def save_log():
+        if not args_cli.log_data or len(latent_log) == 0:
+            return
+        os.makedirs(args_cli.log_save_dir, exist_ok=True)
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        np.save(os.path.join(args_cli.log_save_dir, f"latent_{ts}.npy"), np.array(latent_log))
+        np.save(os.path.join(args_cli.log_save_dir, f"force_{ts}.npy"),  np.array(force_log))
+        np.save(os.path.join(args_cli.log_save_dir, f"action_{ts}.npy"), np.array(action_log))
+        print(f"[LOG] Saved {len(latent_log)} steps → {args_cli.log_save_dir} (ts={ts})")
+
+    try:
+        while True:
+            input_dict = {
+                'obs': agent.running_mean_std(obs_dict['obs']),
+                'proprio_hist': agent.sa_mean_std(obs_dict['proprio_hist'].detach()),
+            }
+            if args_cli.log_data:
+                with torch.no_grad():
+                    mu, _, _, extrin, _ = agent.model._actor_critic(input_dict)
+                # extrin: (1, 8), force: raw값 (sa_mean_std 적용 전)
+                # proprio_hist shape: (1, 30, 64), slot [44:49] = contact force
+                force = obs_dict['proprio_hist'][:, -1, 44:49]
+                latent_log.append(extrin.squeeze().cpu().numpy())
+                force_log.append(force.squeeze().cpu().numpy())
+                action_log.append(mu.squeeze().cpu().numpy())
+            else:
+                mu = agent.model.act_inference(input_dict)
+            obs_dict, r, done, info = agent.env.step(mu)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        save_log()
 
 
 if __name__ == "__main__":

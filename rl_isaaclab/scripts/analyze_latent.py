@@ -11,6 +11,8 @@ Usage:
 import argparse
 import os
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')   # headless-safe: no display required
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import Normalize
@@ -21,15 +23,32 @@ parser.add_argument("--latent", type=str, required=True)
 parser.add_argument("--force",  type=str, required=True)
 parser.add_argument("--action", type=str, default=None)
 parser.add_argument("--out_dir", type=str, default=None,
-                    help="Output directory for figures. Defaults to same directory as --latent.")
+                    help="Output directory for figures. Defaults to figs/ next to --latent.")
 parser.add_argument("--control_freq", type=float, default=20.0, help="Hz")
 args = parser.parse_args()
 
-# default out_dir: same directory as the latent file
+def _resolve_out_dir(candidate: str) -> str:
+    """Return a writable output directory, falling back to ~/latent_figs if needed."""
+    try:
+        os.makedirs(candidate, exist_ok=True)
+        # verify actual write permission by probing
+        probe = os.path.join(candidate, ".write_test")
+        with open(probe, 'w') as f:
+            f.write('')
+        os.remove(probe)
+        return candidate
+    except (PermissionError, OSError):
+        fallback = os.path.expanduser("~/latent_figs")
+        print(f"[WARN] Cannot write to '{candidate}' (permission denied). "
+              f"Falling back to: {fallback}")
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
+
+# default out_dir: figs/ next to the latent file
 if args.out_dir is None:
     args.out_dir = os.path.join(os.path.dirname(os.path.abspath(args.latent)), "figs")
 
-os.makedirs(args.out_dir, exist_ok=True)
+args.out_dir = _resolve_out_dir(args.out_dir)
 print(f"[INFO] Saving figures to: {os.path.abspath(args.out_dir)}")
 
 # ── load ──────────────────────────────────────────────────────────────────────

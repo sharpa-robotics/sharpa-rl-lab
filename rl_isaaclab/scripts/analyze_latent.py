@@ -20,11 +20,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--latent", type=str, required=True)
 parser.add_argument("--force",  type=str, required=True)
 parser.add_argument("--action", type=str, default=None)
-parser.add_argument("--out_dir", type=str, default="figs")
+parser.add_argument("--out_dir", type=str, default=None,
+                    help="Output directory for figures. Defaults to same directory as --latent.")
 parser.add_argument("--control_freq", type=float, default=20.0, help="Hz")
 args = parser.parse_args()
 
+# default out_dir: same directory as the latent file
+if args.out_dir is None:
+    args.out_dir = os.path.join(os.path.dirname(os.path.abspath(args.latent)), "figs")
+
 os.makedirs(args.out_dir, exist_ok=True)
+print(f"[INFO] Saving figures to: {os.path.abspath(args.out_dir)}")
 
 # ── load ──────────────────────────────────────────────────────────────────────
 latent = np.load(args.latent)   # (T, 8)

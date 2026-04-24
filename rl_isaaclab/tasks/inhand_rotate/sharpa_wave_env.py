@@ -193,7 +193,7 @@ class SharpaWaveInhandRotateEnv(DirectRLEnv):
             prob = self.cfg.random_force_prob_scalar
             force_indices = (torch.less(torch.rand(self.num_envs, device=self.device), prob)).nonzero().to(self.device)
             self.rb_forces[force_indices, :] = torch.randn(self.rb_forces[force_indices, :].shape, device=self.device) * obj_mass[force_indices, None] * self.cfg.force_scale
-            self.object.set_external_force_and_torque(forces=self.rb_forces.reshape(self.num_envs, 1, 3), torques=torch.zeros(self.num_envs, 1, 3))
+            self.object.set_external_force_and_torque(forces=self.rb_forces.reshape(self.num_envs, 1, 3), torques=torch.zeros(self.num_envs, 1, 3, device=self.device))
 
     def _apply_action(self) -> None:
         self._refresh_lab()

@@ -14,7 +14,7 @@ from termcolor import cprint
 from rl_isaaclab.utils.misc import AverageScalarMeter, tprint
 from rl_isaaclab.algo.models.models import ActorCritic
 from rl_isaaclab.algo.models.running_mean_std import RunningMeanStd
-from tensorboardX import SummaryWriter
+from nexus.logger import make_logger
 
 
 class ProprioAdapt(object):
@@ -57,8 +57,18 @@ class ProprioAdapt(object):
         if create_output_dir:
             os.makedirs(self.nn_dir, exist_ok=True)
             os.makedirs(self.tb_dir, exist_ok=True)
-            writer = SummaryWriter(self.tb_dir)
-            self.writer = writer
+            self.writer = make_logger(
+                mode=self.ppo_config.get('logger_mode', 'dual'),
+                log_dir=self.tb_dir,
+                run_name=os.path.basename(output_dir),
+                tracking_uri=self.ppo_config.get('mlflow_tracking_uri', 'http://127.0.0.1:5100'),
+                experiment_name=self.ppo_config.get('experiment_name', 'robot_hand_rl'),
+                params=full_config.train,
+                tags={
+                    'stage': 'stage2_proprioadapt',
+                    'task': str(getattr(full_config, 'task', 'unknown')),
+                },
+            )
         self.direct_info = {}
         # ---- Misc ----
         self.batch_size = self.num_actors
@@ -116,6 +126,7 @@ class ProprioAdapt(object):
             self.optim.zero_grad()
             loss.backward()
             self.optim.step()
+            self._last_adapt_loss = loss.item()
 
             mu = mu.detach()
             mu = torch.clamp(mu, -1.0, 1.0)
@@ -152,12 +163,22 @@ class ProprioAdapt(object):
                           f'Mean Rewards: {mean_rewards:.2f} | ' \
                           f'Current Best: {self.best_rewards:.2f}'
             tprint(info_string)
+        self.writer.close()
 
     def log_tensorboard(self):
         self.writer.add_scalar('episode_rewards/step', self.mean_eps_reward.get_mean(), self.agent_steps)
         self.writer.add_scalar('episode_lengths/step', self.mean_eps_length.get_mean(), self.agent_steps)
         for k, v in self.direct_info.items():
             self.writer.add_scalar(f'{k}/frame', v, self.agent_steps)
+        if hasattr(self, '_last_adapt_loss'):
+            self.writer.add_scalar('losses/adapt_loss', self._last_adapt_loss, self.agent_steps)
+            self.writer.log_rl_metrics(
+                step=self.agent_steps,
+                grad_norm=sum(
+                    p.grad.detach().norm().item() ** 2
+                    for p in self.model.parameters() if p.grad is not None
+                ) ** 0.5,
+            )
 
     def restore_train(self, fn):
         checkpoint = torch.load(fn)

@@ -20,7 +20,7 @@ from rl_isaaclab.algo.models.running_mean_std import RunningMeanStd
 
 from rl_isaaclab.utils.misc import AverageScalarMeter
 
-from tensorboardX import SummaryWriter
+from nexus.logger import make_logger
 
 
 class PPO(object):
@@ -92,11 +92,21 @@ class PPO(object):
         # ---- Snapshot
         self.save_freq = self.ppo_config['save_frequency']
         self.save_best_after = self.ppo_config['save_best_after']
-        # ---- Tensorboard Logger ----
+        # ---- Logger ----
         self.extra_info = {}
         if create_output_dir:
-            writer = SummaryWriter(self.tb_dif)
-            self.writer = writer
+            self.writer = make_logger(
+                mode=self.ppo_config.get('logger_mode', 'dual'),
+                log_dir=self.tb_dif,
+                run_name=os.path.basename(output_dir),
+                tracking_uri=self.ppo_config.get('mlflow_tracking_uri', 'http://127.0.0.1:5100'),
+                experiment_name=self.ppo_config.get('experiment_name', 'robot_hand_rl'),
+                params=full_config.train,
+                tags={
+                    'stage': 'stage1_ppo',
+                    'task': str(getattr(full_config, 'task', 'unknown')),
+                },
+            )
 
         self.episode_rewards = AverageScalarMeter(100)
         self.episode_lengths = AverageScalarMeter(100)
@@ -131,7 +141,16 @@ class PPO(object):
 
         self.writer.add_scalar('info/last_lr', self.last_lr, self.agent_steps)
         self.writer.add_scalar('info/e_clip', self.e_clip, self.agent_steps)
-        self.writer.add_scalar('info/kl', torch.mean(torch.stack(kls)).item(), self.agent_steps)
+
+        mean_kl = torch.mean(torch.stack(kls)).item()
+        self.writer.add_scalar('info/kl', mean_kl, self.agent_steps)
+
+        self.writer.log_rl_metrics(
+            step=self.agent_steps,
+            approx_kl=mean_kl,
+            entropy=torch.mean(torch.stack(entropies)).item(),
+            grad_norm=self._last_grad_norm if hasattr(self, '_last_grad_norm') else None,
+        )
 
         for k, v in self.extra_info.items():
             self.writer.add_scalar(f'{k}', v, self.agent_steps)
@@ -202,6 +221,7 @@ class PPO(object):
             print(info_string)
 
         print('max steps achieved')
+        self.writer.close()
 
     def save(self, name):
         weights = {
@@ -294,6 +314,10 @@ class PPO(object):
                 loss.backward()
                 if self.truncate_grads:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_norm)
+                self._last_grad_norm = sum(
+                    p.grad.detach().norm().item() ** 2
+                    for p in self.model.parameters() if p.grad is not None
+                ) ** 0.5
                 self.optimizer.step()
 
                 with torch.no_grad():

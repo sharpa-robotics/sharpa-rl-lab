@@ -41,3 +41,6 @@ algorithm:
   priv_info: True
   priv_info_dim: 8
   priv_info_embed_dim: 8
+  # logging
+  logger_mode: 'dual'  # 'dual' | 'mlflow' | 'tensorboard'
+  mlflow_tracking_uri: 'http://127.0.0.1:5100'
